@@ -1,6 +1,6 @@
 import html
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from dengue_link.bangla import bn_digits
@@ -375,6 +375,7 @@ def render(out_path, *, upazilas, upazila_district, districts, divisions, novelt
         "spray": spray["items"] if spray else None,
         "sprayChecked": spray["checked"] if spray else None,
         "history": _history(districts, past_weeks),
+        "builtAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     payload = json.dumps(data, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
     dname = lambda d: _t(html.escape(d), bn["district"].get(d, html.escape(d)))

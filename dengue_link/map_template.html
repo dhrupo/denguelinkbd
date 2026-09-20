@@ -15,7 +15,7 @@ try {
 <style>
 :root {
   --bg:#F8FAFC; --surface:#FFFFFF; --fg:#0F172A; --muted:#475569; --border:#CBD5E1; --hover:#EEF2F7;
-  --primary:#1E40AF; --on-primary:#FFFFFF; --ring:#1E40AF; --accent:#B45309;
+  --primary:#1E40AF; --on-primary:#FFFFFF; --ring:#1E40AF; --accent:#B45309; --on-accent:#FFFFFF;
   --up:#B91C1C; --down:#15803D; --flat:#475569;
   --f0:#FFFFB2; --f1:#FECC5C; --f2:#FD8D3C; --f3:#E31A1C; --f4:#800026;
   --line:#64748B; --border-strong:#334155; --map-bg:#E6EEF5; --halo:#FFFFFF;
@@ -24,7 +24,7 @@ try {
 }
 :root[data-theme="dark"] {
   --bg:#0B1220; --surface:#131C31; --fg:#E2E8F0; --muted:#A3B1C6; --border:#2A3754; --hover:#1B2742;
-  --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24;
+  --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24; --on-accent:#111827;
   --up:#FCA5A5; --down:#86EFAC; --flat:#CBD5E1;
   --line:#0B1220; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
   --float-shadow:0 1px 3px rgba(0,0,0,.6),0 4px 8px 3px rgba(0,0,0,.35);
@@ -32,7 +32,7 @@ try {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg:#0B1220; --surface:#131C31; --fg:#E2E8F0; --muted:#A3B1C6; --border:#2A3754; --hover:#1B2742;
-    --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24;
+    --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24; --on-accent:#111827;
     --up:#FCA5A5; --down:#86EFAC; --flat:#CBD5E1;
     --line:#0B1220; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
     --float-shadow:0 1px 3px rgba(0,0,0,.6),0 4px 8px 3px rgba(0,0,0,.35);
@@ -176,6 +176,8 @@ th, td { padding:8px; border-bottom:1px solid var(--border); text-align:left; } 
 .leaflet-popup-content { margin:12px 14px; max-height:240px; overflow:auto; font-size:.875rem; }
 .leaflet-popup-content h4 { margin:0 0 6px; font-size:.9375rem; } .leaflet-popup-content p { margin:4px 0; }
 .note.warn { border-left-color:var(--up); margin:10px 0 0; }
+#stale { position:fixed; z-index:1150; left:12px; right:64px; bottom:calc(var(--bottom-h) + 10px); margin:0 auto; max-width:560px; padding:8px 14px;
+  border-radius:12px; background:var(--accent); color:var(--on-accent); font-weight:600; font-size:.875rem; box-shadow:var(--float-shadow); }
 .note.warn p { margin:4px 0 0; }
 .checks { list-style:none; margin:10px 0; padding:0; display:grid; gap:4px; grid-template-columns:repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
 .checks label { display:flex; align-items:center; gap:10px; min-height:44px; cursor:pointer; }
@@ -212,7 +214,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
 #place ul { margin:6px 0 0; padding-left:1.2em; }
 @media (min-width:1100px) { body.place-open #legend { left:calc(min(370px, 100% - 24px) + 24px); } }
 .banner { margin:0; padding:8px 14px; border-radius:999px; background:var(--accent); box-shadow:var(--float-shadow); justify-self:start; }
-.banner a { color:#111827; font-weight:600; }
+.banner a { color:var(--on-accent); font-weight:600; }
 @media (max-width:1099px) {
   #place { left:0; right:0; top:auto; bottom:var(--bottom-h); width:100%; border-radius:16px 16px 0 0; max-height:60%; }
 }
@@ -262,6 +264,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
   </ul>
 </nav>
 
+<p id="stale" role="status" hidden></p>
 <main>
   <section class="view" id="view-map" aria-labelledby="map-title">
     <h2 id="map-title" class="sr-only" tabindex="-1"><span data-l="en">Dengue risk map for next week</span><span data-l="bn" lang="bn">আগামী সপ্তাহের ডেঙ্গু ঝুঁকির মানচিত্র</span></h2>
@@ -497,6 +500,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
       rating: { Low: "Low", Moderate: "Moderate", High: "High" },
       sprayTitle: function (n) { return "Ward " + n + ": which days each area is sprayed"; }, sprayNone: "The city's area-by-area list doesn't cover this ward yet.", and: " and ",
       weekHint: "Slide left to see earlier weeks",
+      stale: function (d) { return "These figures were last updated on " + d + ". A newer update has not arrived yet."; },
       ratedOn: function (d) { return "Rated on " + d; }, listChecked: function (d) { return "The city's list, checked on " + d + "."; },
       nearestBtn: "Nearest hospital",
       fromYou: "Closest to where you are now.", fromDistrict: function (d) { return "Closest to the centre of " + d + " district. Use your location for a better answer."; },
@@ -550,6 +554,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
       rating: { Low: "কম", Moderate: "মাঝারি", High: "বেশি" },
       sprayTitle: function (n) { return n + " নম্বর ওয়ার্ড: কোন এলাকায় কোন দিন ওষুধ ছিটানো হয়"; }, sprayNone: "সিটি কর্পোরেশনের এলাকাভিত্তিক তালিকায় এই ওয়ার্ড এখনো নেই।", and: " ও ",
       weekHint: "আগের সপ্তাহ দেখতে বাঁ দিকে টানুন",
+      stale: function (d) { return "এই হিসাব সর্বশেষ হালনাগাদ হয়েছে " + d + "। এরপর নতুন হিসাব এখনো আসেনি।"; },
       ratedOn: function (d) { return d + " তারিখের মূল্যায়ন"; }, listChecked: function (d) { return "সিটি কর্পোরেশনের তালিকা, সর্বশেষ যাচাই " + d + "।"; },
       nearestBtn: "কাছের হাসপাতাল",
       fromYou: "আপনি এখন যেখানে আছেন, সেখান থেকে সবচেয়ে কাছের হাসপাতাল।", fromDistrict: function (d) { return d + " জেলার কেন্দ্র থেকে হিসাব করা সবচেয়ে কাছের হাসপাতাল। আরও ঠিকঠাক জানতে আপনার অবস্থান ব্যবহার করুন।"; },
@@ -726,6 +731,12 @@ body.place-open #answer, body.place-open .banner { display:none; }
   });
 
   function drawWardKey() { if (D.wardRisk) document.getElementById("ward-key-date").textContent = t("ratedOn")(dayMonth(D.wardRisk.date)); }
+
+  // A page served from a daily build cannot refresh itself; once it has missed an update it says how old it is.
+  function drawStale() {
+    var old = Date.now() - Date.parse(D.builtAt) > 30 * 3600 * 1000, note = document.getElementById("stale");
+    note.hidden = !old; note.textContent = old ? t("stale")(dayMonth(D.builtAt)) : "";
+  }
 
   /* Week slider: replay the last weeks on the same colour scale; the last stop is next week's forecast */
   var weekInput = document.getElementById("week"), weeks = D.history ? D.history.weeks : [];
@@ -1074,7 +1085,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
     langBtn.textContent = t("langBtn");
     langBtn.setAttribute("aria-label", t("langLabel"));
     langBtn.setAttribute("lang", lang() === "bn" ? "en" : "bn");
-    bindTooltips(); wardTooltips(); centreTooltips(); makeLabels(); showLabels(); drawLegend(); drawWeek(); drawWardKey(); drawAnswer(); drawFinder(); drawHome();
+    bindTooltips(); wardTooltips(); centreTooltips(); makeLabels(); showLabels(); drawLegend(); drawWeek(); drawWardKey(); drawAnswer(); drawFinder(); drawHome(); drawStale();
     if (current) showPlace(current, true);
   }
   langBtn.addEventListener("click", function () {

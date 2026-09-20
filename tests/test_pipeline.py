@@ -430,3 +430,14 @@ def test_the_latest_complete_week_ends_on_a_saturday():
     weeks = pd.DataFrame({"X": [5.0, 6.0]}, index=[date(2026, 9, 6), date(2026, 9, 13)])
     assert len(complete_weeks(weeks, today=date(2026, 9, 19))) == 1
     assert len(complete_weeks(weeks, today=date(2026, 9, 20))) == 2
+
+
+def test_an_unattended_daily_build_can_wait_longer_for_slow_sources(monkeypatch):
+    import importlib
+
+    from dengue_link import pipeline
+
+    monkeypatch.setenv("DENGUE_LINK_SOURCE_BUDGET", "180")
+    assert importlib.reload(pipeline).SOURCE_BUDGET_SECONDS == 180
+    monkeypatch.delenv("DENGUE_LINK_SOURCE_BUDGET")
+    assert importlib.reload(pipeline).SOURCE_BUDGET_SECONDS == 30

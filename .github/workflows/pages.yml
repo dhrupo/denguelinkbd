@@ -1,0 +1,69 @@
+name: Build and publish the daily page
+
+on:
+  schedule:
+    # 13:30 in Dhaka: after the Met Department has posted the day's forecast (around noon).
+    - cron: "30 7 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: Asia/Dhaka
+      # Nobody is waiting on this build, so slow government servers get three minutes instead of thirty seconds.
+      DENGUE_LINK_SOURCE_BUDGET: "180"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run the tests
+        if: github.event_name != 'schedule'
+        run: uv run pytest -q
+
+      # Past daily reports and mosquito surveys drop off their source pages, so each build carries forward what earlier ones collected.
+      - name: Bring back what earlier builds collected
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/dengue_link.db
+            data/cache
+          key: collected-${{ github.run_id }}
+          restore-keys: collected-
+
+      - name: Build today's page
+        run: uv run python -m dengue_link
+
+      # If DGHS could not be reached there is no forecast. Failing here keeps the last good page online instead of replacing it.
+      - name: Stop if there is no forecast
+        run: grep -q 'id="data"' out/map.html
+
+      - name: Lay out the site
+        run: mkdir site && cp out/map.html site/index.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

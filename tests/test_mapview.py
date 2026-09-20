@@ -568,3 +568,19 @@ def test_ward_ratings_test_centres_and_spray_days_each_carry_a_date(page):
     assert "D.wardRisk.date" in script and "D.sprayChecked" in script
     helpv = _view(page, "help")
     assert helpv.count("18 September 2026") == 2
+
+
+def test_a_page_that_has_gone_a_day_without_an_update_says_so(page):
+    from datetime import datetime
+
+    built = datetime.fromisoformat(_data(page)["builtAt"])
+    assert built.tzinfo is not None
+    assert 'id="stale"' in page and 'role="status"' in page[page.index('id="stale"') - 80:page.index('id="stale"') + 120]
+    script = page[page.index("var T = {"):]
+    assert "30 * 3600 * 1000" in script and "D.builtAt" in script
+    assert "last updated on" in script and "সর্বশেষ হালনাগাদ" in script
+
+
+def test_text_on_the_accent_colour_is_readable_in_both_themes(page):
+    assert "--accent:#B45309; --on-accent:#FFFFFF;" in page and page.count("--accent:#FBBF24; --on-accent:#111827;") == 2
+    assert "color:#111827" not in page[page.index(".banner"):page.index(".banner") + 400]

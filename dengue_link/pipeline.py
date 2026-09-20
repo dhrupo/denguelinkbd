@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -110,7 +111,8 @@ def _series(conn, source, metric):
 
 
 # A stalled government server must not hold the page hostage; normal runs finish in about 20 s.
-SOURCE_BUDGET_SECONDS = 30
+# The unattended daily build has nobody waiting, so it may set a longer wait and lose fewer sources.
+SOURCE_BUDGET_SECONDS = int(os.environ.get("DENGUE_LINK_SOURCE_BUDGET", 30))
 
 
 HOSPITALS, DNCC_SHEETS, BMD = "DGHS hospital list", "DNCC dengue dashboard", "BMD forecast and warnings"

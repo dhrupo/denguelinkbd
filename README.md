@@ -4,6 +4,8 @@ A dengue map for Bangladesh that anyone can read. It shows how bad dengue is lik
 
 In Bangladesh the pieces of the dengue picture sit with different organisations. The health directorate counts patients. The Met Department forecasts rain. Dhaka North City Corporation sprays, traps mosquitoes and rates its wards. Each publishes on its own site, in its own format, and none of it lines up. Dengue Link fetches all of it once a day, joins it by place, and puts it on one page.
 
+**Live page: https://dhrupo.github.io/denguelinkbd/**
+
 It needs no extra hardware, no accounts and no paid services. Every source is a public page that opens without a login, a captcha or a key.
 
 ![Map of Bangladesh coloured by next week's dengue risk](docs/map-desktop.png)
@@ -83,6 +85,15 @@ uv run python -m dengue_link
 ```
 
 The first visit of the day shows a progress bar while the sources are fetched, which takes about 20 seconds. After that the page opens at once: the server keeps the build for 24 hours, and so does your browser. No source is allowed to hold the page up for more than 30 seconds.
+
+## How the live page is published
+
+A GitHub Actions job (`.github/workflows/pages.yml`) builds the page once a day at 13:30 Dhaka time, after the Met Department has posted its forecast, and publishes it to GitHub Pages. It also runs on every push to `main`.
+
+- If DGHS cannot be reached, the job stops and the last good page stays online.
+- A page that has missed an update says so: once its figures are more than 30 hours old, a notice shows the date they were last updated.
+- Each build carries forward the daily reports and mosquito surveys that earlier builds collected, because those drop off their source pages.
+- GitHub pauses scheduled jobs in a repository that has had no activity for 60 days. Any push, or pressing *Run workflow*, starts them again.
 
 ## Tests
 
