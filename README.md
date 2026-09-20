@@ -90,7 +90,8 @@ The first visit of the day shows a progress bar while the sources are fetched, w
 
 A GitHub Actions job (`.github/workflows/pages.yml`) builds the page once a day at 13:30 Dhaka time, after the Met Department has posted its forecast, and publishes it to GitHub Pages. It also runs on every push to `main`.
 
-- If DGHS cannot be reached, the job stops and the last good page stays online.
+- From GitHub's machines the link to Bangladesh's government servers drops out for a few minutes at a time. A build that misses a source is tried again, up to three times, two minutes apart, and the attempt with the fewest gaps is published.
+- If DGHS cannot be reached on any attempt, the job fails and the last good page stays online.
 - A page that has missed an update says so: once its figures are more than 30 hours old, a notice shows the date they were last updated.
 - Each build carries forward the daily reports and mosquito surveys that earlier builds collected, because those drop off their source pages.
 - Vercel can serve a copy too. It does not run the app (the app keeps a database and history on disk, which Vercel does not allow). `vercel.json` simply makes each Vercel build download the finished page from GitHub Pages. To keep that copy fresh, create a Deploy Hook in the Vercel project and save its address as the repository secret `VERCEL_DEPLOY_HOOK`; the daily job then calls it after publishing.
