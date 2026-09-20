@@ -1,0 +1,252 @@
+[
+    {
+        "division": "DHAKA",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "MANY PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 35.5,
+        "temp_max_yesterday": 35.5,
+        "temp_min": 23.8,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 34.75,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 23.8,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE DISTRICTS OF GOPALGANJ & NARAYANGANJ AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [
+                "Gopalganj",
+                "Narayanganj"
+            ],
+            "divisions": []
+        },
+        "heat_wave_type": "Mild",
+        "file_id": "209727",
+        "file_date": "2026-09-20"
+    },
+    {
+        "division": "RAJSHAHI",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "MANY PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 35.2,
+        "temp_max_yesterday": 35.2,
+        "temp_min": 27.1,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 34.45,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 27.1,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE DISTRICT OF BOGURA AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [
+                "Bogura"
+            ],
+            "divisions": []
+        },
+        "heat_wave_type": "Mild"
+    },
+    {
+        "division": "RANGPUR",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "A FEW PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 35.0,
+        "temp_max_yesterday": 35.0,
+        "temp_min": 27.0,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 34.25,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 27.0,
+        "temp_wave_type": null
+    },
+    {
+        "division": "MYMENSINGH",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "MANY PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 35.8,
+        "temp_max_yesterday": 35.8,
+        "temp_min": 24.6,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 35.05,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 24.6,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE DISTRICT OF NETROKONA AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [
+                "Netrokona"
+            ],
+            "divisions": []
+        },
+        "heat_wave_type": "Mild"
+    },
+    {
+        "division": "SYLHET",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "A FEW PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 36.7,
+        "temp_max_yesterday": 36.7,
+        "temp_min": 25.5,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 35.95,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 25.5,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE AREA AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [],
+            "divisions": []
+        },
+        "heat_wave_type": "Mild"
+    },
+    {
+        "division": "CHATTOGRAM",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "MANY PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 35.5,
+        "temp_max_yesterday": 35.5,
+        "temp_min": 27.0,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 34.75,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 27.0,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE DISTRICTS OF CUMILLA, CHANDPUR, LAKSHMIPUR, FENI & CHATTOGRAM AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [
+                "Chandpur",
+                "Chattogram",
+                "Cumilla",
+                "Feni",
+                "Lakshmipur"
+            ],
+            "divisions": [
+                "Chattogram"
+            ]
+        },
+        "heat_wave_type": "Mild"
+    },
+    {
+        "division": "KHULNA",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "MANY PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 36.0,
+        "temp_max_yesterday": 36.0,
+        "temp_min": 24.0,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 35.25,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 24.0,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE DISTRICTS KHULNA & SATKHIRA AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [
+                "Khulna",
+                "Satkhira"
+            ],
+            "divisions": [
+                "Khulna"
+            ]
+        },
+        "heat_wave_type": "Mild"
+    },
+    {
+        "division": "BARISHAL",
+        "report_hour": "0900",
+        "report_date": "2026-09-20",
+        "weather": {
+            "rain": "LIGHT TO MODERATE RAIN/THUNDER SHOWERS",
+            "wind": "GUSTY WIND",
+            "lightning": false,
+            "hail": false,
+            "coverage": "MANY PLACES",
+            "intensity": "MODERATELY HEAVY TO HEAVY"
+        },
+        "sky_text": "PARTLY CLOUDY TO TEMPORARY CLOUDY",
+        "temp_text": "DAY TEMPERATURE MAY FALL SLIGHTLY AND NIGHT TEMPERATURE MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_max": 36.4,
+        "temp_max_yesterday": 36.4,
+        "temp_min": 25.2,
+        "temp_max_forecast": "MAY FALL SLIGHTLY",
+        "temp_max_forecast_val": 35.65,
+        "temp_min_forecast": "MAY REMAIN NEARLY UNCHANGED OVER THE AREA",
+        "temp_min_forecast_val": 25.2,
+        "temp_wave_type": "Heat Wave",
+        "heat_wave_txt": "MILD HEAT WAVE IS SWEEPING OVER THE DISTRICT BARISHAL AND IT MAY ABATE",
+        "heat_wave_areas": {
+            "districts": [
+                "Barishal"
+            ],
+            "divisions": []
+        },
+        "heat_wave_type": "Mild"
+    }
+]

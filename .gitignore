@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Built page, local database and downloaded lists: all recreated by running the project
+out/
+*.db
+data/cache/
+*.tmp
+
+# Working notes
+PLAN.md
+
+# DNCC's spray plan lists each worker's name and mobile number; tests that need it are skipped when it is absent
+tests/fixtures/dncc_plan_zone4.pdf
+
+# Editor and OS clutter
+.DS_Store
+.idea/
+.vscode/

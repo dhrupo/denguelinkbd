@@ -1,0 +1,20 @@
+[project]
+name = "dengue-link"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "requests",
+    "pypdf",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pyshp",
+    "truststore>=0.10.4",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

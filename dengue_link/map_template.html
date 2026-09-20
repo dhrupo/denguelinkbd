@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dengue Link | Where dengue could rise next week</title>
+<script>
+try {
+  var t = localStorage.getItem("dl-theme"); if (t) document.documentElement.setAttribute("data-theme", t);
+  var l = localStorage.getItem("dl-lang") || ((navigator.language || "").indexOf("bn") === 0 ? "bn" : "en");
+  document.documentElement.setAttribute("lang", l);
+} catch (e) {}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
+<style>
+:root {
+  --bg:#F8FAFC; --surface:#FFFFFF; --fg:#0F172A; --muted:#475569; --border:#CBD5E1; --hover:#EEF2F7;
+  --primary:#1E40AF; --on-primary:#FFFFFF; --ring:#1E40AF; --accent:#B45309;
+  --up:#B91C1C; --down:#15803D; --flat:#475569;
+  --f0:#FFFFB2; --f1:#FECC5C; --f2:#FD8D3C; --f3:#E31A1C; --f4:#800026;
+  --line:#64748B; --border-strong:#334155; --map-bg:#E6EEF5; --halo:#FFFFFF;
+  --float-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);
+  --bar-h:72px; --bottom-h:0px;
+}
+:root[data-theme="dark"] {
+  --bg:#0B1220; --surface:#131C31; --fg:#E2E8F0; --muted:#A3B1C6; --border:#2A3754; --hover:#1B2742;
+  --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24;
+  --up:#FCA5A5; --down:#86EFAC; --flat:#CBD5E1;
+  --line:#0B1220; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
+  --float-shadow:0 1px 3px rgba(0,0,0,.6),0 4px 8px 3px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#0B1220; --surface:#131C31; --fg:#E2E8F0; --muted:#A3B1C6; --border:#2A3754; --hover:#1B2742;
+    --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24;
+    --up:#FCA5A5; --down:#86EFAC; --flat:#CBD5E1;
+    --line:#0B1220; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
+    --float-shadow:0 1px 3px rgba(0,0,0,.6),0 4px 8px 3px rgba(0,0,0,.35);
+  }
+}
+html[lang="bn"] [data-l="en"], html:not([lang="bn"]) [data-l="bn"] { display:none !important; }
+* { box-sizing:border-box; }
+html, body { height:100%; }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali","Hind Siliguri",sans-serif; }
+a { color:var(--primary); }
+:focus-visible { outline:3px solid var(--ring); outline-offset:2px; }
+h2[tabindex="-1"]:focus, h3[tabindex="-1"]:focus { outline:none; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.skip { position:absolute; left:-9999px; } .skip:focus { left:12px; top:8px; z-index:1300; background:var(--surface); padding:8px 12px; }
+.muted { color:var(--muted); }
+.num { font-variant-numeric:tabular-nums; }
+button { font:inherit; color:inherit; }
+svg.icon { width:22px; height:22px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Top bar: floating controls over the map, solid bar on the other views */
+.appbar { position:fixed; inset:0 0 auto 0; z-index:1200; display:flex; align-items:center; gap:10px; padding:12px; }
+body:not(.on-map) .appbar { background:var(--surface); border-bottom:1px solid var(--border); }
+body.on-map .appbar { pointer-events:none; }
+body.on-map .appbar > * { pointer-events:auto; }
+.brand { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.brand h1 { font-size:1.125rem; margin:0; }
+.brand .date { font-size:.8125rem; }
+body.on-map .brand { display:none; }
+.search { position:relative; flex:1 1 auto; max-width:400px; min-width:180px; }
+@media (max-width:480px) { .search { min-width:0; } .appbar { gap:8px; padding:10px; } #lang-toggle { padding:0 10px; } }
+.search input { width:100%; height:48px; padding:0 16px 0 48px; border:1px solid var(--border); border-radius:24px; background:var(--surface); color:var(--fg); font-size:16px; }
+body.on-map .search input { border:0; box-shadow:var(--float-shadow); }
+.search svg { position:absolute; left:16px; top:13px; color:var(--muted); pointer-events:none; }
+#search-results { position:absolute; top:54px; left:0; right:0; margin:0; padding:6px; list-style:none; background:var(--surface);
+  border-radius:16px; box-shadow:var(--float-shadow); max-height:340px; overflow:auto; }
+#search-results li { padding:10px 12px; border-radius:10px; cursor:pointer; min-height:44px; }
+#search-results li[aria-selected="true"], #search-results li:hover { background:var(--hover); }
+#search-results .sub { display:block; font-size:.875rem; color:var(--muted); }
+#search-results .empty { cursor:default; color:var(--muted); }
+.spacer { flex:1 1 0; }
+.round { width:48px; height:48px; flex:none; border-radius:50%; border:1px solid var(--border); background:var(--surface); cursor:pointer; display:grid; place-items:center; }
+body.on-map .round { border:0; box-shadow:var(--float-shadow); }
+.round:hover { background:var(--hover); }
+#lang-toggle { width:auto; min-width:48px; padding:0 14px; border-radius:24px; font-weight:600; }
+
+/* Menu: bottom bar on phones, chips beside the search on wider screens */
+nav.views { position:fixed; inset:auto 0 0 0; z-index:1200; background:var(--surface); border-top:1px solid var(--border); padding-bottom:env(safe-area-inset-bottom); }
+nav.views ul { display:grid; grid-template-columns:repeat(5,1fr); margin:0; padding:0; list-style:none; }
+nav.views a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:56px; text-decoration:none; color:var(--muted); font-size:.75rem; text-align:center; }
+nav.views a[aria-current="page"] { color:var(--primary); font-weight:600; }
+nav.views a:hover { background:var(--hover); }
+:root { --bottom-h:57px; }
+@media (min-width:1100px) {
+  :root { --bottom-h:0px; }
+  nav.views { position:static; background:transparent; border:0; padding:0; }
+  nav.views ul { display:flex; gap:8px; }
+  nav.views a { flex-direction:row; gap:6px; min-height:40px; padding:0 12px; border-radius:20px; font-size:.9375rem; color:var(--fg); white-space:nowrap;
+    background:var(--surface); border:1px solid var(--border); }
+  body.on-map nav.views a { border:0; box-shadow:var(--float-shadow); }
+  nav.views a[aria-current="page"] { background:var(--primary); color:var(--on-primary); border-color:var(--primary); }
+  #bottom-nav { display:none; }
+}
+@media (max-width:1399px) { .brand .date { display:none; } }
+@media (max-width:1099px) {
+  .brand h1 { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  #top-nav { display:none; }
+}
+
+/* Views */
+.view[hidden] { display:none !important; }
+#view-map { position:relative; height:100dvh; }
+#map { position:absolute; inset:0 0 var(--bottom-h) 0; background:var(--map-bg); }
+.page { max-width:1180px; margin:0 auto; padding:calc(var(--bar-h) + 16px) 16px calc(var(--bottom-h) + 24px); }
+.page h2 { font-size:1.5rem; margin:8px 0 4px; }
+.page > p.lead { margin:0 0 16px; color:var(--muted); }
+.prose { max-width:760px; }
+.prose-wide { max-width:1180px; }
+.lead-big { font-size:1.125rem; margin:16px 0; }
+.trend-fig { margin:0 0 18px; color:var(--primary); }
+.spark { width:100%; max-width:640px; height:70px; display:block; }
+.spark-dates { display:flex; justify-content:space-between; max-width:640px; font-size:.8125rem; }
+.doc-links li { margin:6px 0; }
+.novelty { list-style:none; margin:8px 0; padding:0; display:grid; gap:6px; max-width:560px; }
+.nov { display:grid; grid-template-columns:7.5em 1fr 3em 6.5em; align-items:center; gap:10px; font-size:.9375rem; }
+.nov-bar { height:12px; background:var(--hover); border-radius:6px; overflow:hidden; }
+.nov-bar i { display:block; height:100%; background:var(--primary); border-radius:6px; }
+.nov.odd .nov-bar i { background:var(--accent); }
+.nov-flag { font-size:.8125rem; font-weight:700; color:var(--accent); }
+.cards { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap:14px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; }
+.card h3, .card h4 { margin:0; font-size:1.0625rem; }
+.card p { margin:6px 0 0; }
+.card .link { margin-top:auto; }
+.row { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.link { display:inline-flex; align-items:center; min-height:44px; font-weight:600; }
+.badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.8125rem; font-weight:700; }
+.lv0 { background:#FFFFB2; color:#1F2937; } .lv1 { background:#FECC5C; color:#1F2937; } .lv2 { background:#FD8D3C; color:#1F2937; }
+.lv3 { background:#B91C1C; color:#FFFFFF; } .lv4 { background:#7F1D1D; color:#FFFFFF; }
+.trend { font-weight:700; } .trend.up { color:var(--up); } .trend.down { color:var(--down); } .trend.flat { color:var(--flat); }
+.trend.up::before { content:"↑ "; } .trend.down::before { content:"↓ "; } .trend.flat::before { content:"→ "; }
+details { margin-top:18px; } summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-weight:600; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:.9375rem; }
+caption { text-align:left; padding:8px 0; color:var(--muted); }
+th, td { padding:8px; border-bottom:1px solid var(--border); text-align:left; } td.num { text-align:right; }
+.note { border-left:4px solid var(--accent); background:var(--surface); padding:12px 14px; border-radius:8px; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--border);
+  background:var(--surface); color:var(--fg); font-weight:600; text-decoration:none; cursor:pointer; }
+.btn:hover { background:var(--hover); }
+.btn.primary { background:var(--primary); color:var(--on-primary); border-color:var(--primary); }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.switch { display:inline-flex; margin:0 0 16px; border:1px solid var(--border); border-radius:22px; overflow:hidden; background:var(--surface); }
+.switch button { min-height:44px; padding:0 18px; border:0; background:transparent; font-weight:600; cursor:pointer; }
+.switch button[aria-pressed="true"] { background:var(--primary); color:var(--on-primary); }
+.facts { list-style:none; margin:10px 0 0; padding:0; display:grid; gap:8px; }
+.facts li { display:flex; align-items:flex-start; gap:10px; }
+.facts .ico { color:var(--muted); display:flex; }
+.facts .up .ico { color:var(--up); } .facts .down .ico { color:var(--down); }
+.bars { list-style:none; margin:12px 0; padding:0; display:grid; gap:8px; max-width:560px; }
+.bar-row { display:grid; grid-template-columns:8.5em 1fr 3em; align-items:center; gap:10px; }
+.bar-row .num { text-align:right; }
+#who { margin-top:28px; max-width:760px; }
+#hospital-finder { margin:28px 0; }
+#finder-title { scroll-margin-top:calc(var(--bar-h) + 12px); }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.chip { padding:2px 10px; border-radius:999px; font-size:.8125rem; font-weight:600; background:var(--hover); color:var(--fg); }
+.chip.free { background:var(--down); color:var(--bg); }
+.card h4.call { font-size:1.5rem; } .call a { display:inline-flex; align-items:center; min-height:44px; }
+.small { font-size:.8125rem; }
+.steps { padding-left:1.2em; } .steps li { margin:6px 0; }
+
+/* Map overlays (Leaflet controls use z-index 1000; panels above them, bars above panels) */
+.overlay { position:absolute; z-index:1100; background:var(--surface); color:var(--fg); border-radius:14px; box-shadow:var(--float-shadow); }
+.stack > #legend { position:fixed; left:12px; bottom:calc(var(--bottom-h) + 30px); padding:10px 14px; max-width:250px; font-size:.875rem; margin:0; }
+#legend h3 { margin:0; font-size:.875rem; }
+#week { width:100%; min-height:32px; margin:4px 0 0; accent-color:var(--primary); }
+#week-row p, #ward-key p { margin:2px 0 0; }
+#ward-key ul { display:flex; gap:12px; }
+.w-low { background:var(--f1); } .w-mod { background:var(--f2); } .w-high { background:var(--f4); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background:var(--surface); color:var(--fg); }
+.leaflet-popup-content { margin:12px 14px; max-height:240px; overflow:auto; font-size:.875rem; }
+.leaflet-popup-content h4 { margin:0 0 6px; font-size:.9375rem; } .leaflet-popup-content p { margin:4px 0; }
+.note.warn { border-left-color:var(--up); margin:10px 0 0; }
+.note.warn p { margin:4px 0 0; }
+.checks { list-style:none; margin:10px 0; padding:0; display:grid; gap:4px; grid-template-columns:repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.checks label { display:flex; align-items:center; gap:10px; min-height:44px; cursor:pointer; }
+.checks input { width:22px; height:22px; flex:none; accent-color:var(--primary); }
+#home-check { margin:20px 0 8px; }
+#legend ul { list-style:none; margin:4px 0 0; padding:0; display:grid; gap:4px; }
+#legend li { display:flex; align-items:center; gap:8px; }
+#legend i { width:18px; height:14px; border:1px solid var(--line); border-radius:3px; }
+#legend label { display:flex; align-items:center; gap:8px; margin-top:8px; min-height:32px; cursor:pointer; }
+.stack { position:absolute; z-index:1100; left:12px; top:calc(var(--bar-h) + 4px); width:min(370px, calc(100% - 24px)); display:grid; gap:8px; }
+.stack > * { position:static; }
+body.place-open #answer, body.place-open .banner { display:none; }
+/* Phones: the legend becomes a thin strip under the answer card, so it never covers the country */
+@media (max-width:700px) {
+  .stack > #legend { position:static; max-width:none; padding:6px 14px 8px; display:grid; grid-template-columns:1fr auto; align-items:center; column-gap:10px; }
+  #legend label { margin-top:0; grid-row:1; grid-column:2; }
+  #legend-items { grid-column:1 / -1; grid-template-columns:repeat(5,1fr); direction:rtl; gap:3px; margin:0; }
+  #legend-items li { display:block; direction:ltr; min-width:0; white-space:nowrap; font-size:.75rem; }
+  #legend-items li i { display:block; width:100%; height:10px; }
+  #legend-items li:first-child { text-align:right; }
+  #legend-items li:not(:first-child):not(:last-child) span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  #week-row, #ward-key { grid-column:1 / -1; }
+  #week-note { display:none; }
+}
+#answer { padding:12px 16px 14px; }
+#answer h3 { margin:0; font-size:1.125rem; }
+#answer p { margin:6px 0 0; }
+@media (max-width:700px) { #answer { padding:10px 14px 12px; } #answer .intro { display:none; } #answer .actions { margin-top:8px; } #answer .btn { padding:0 14px; } }
+#place { left:12px; top:calc(var(--bar-h) + 4px); width:min(370px, calc(100% - 24px)); padding:14px 16px; max-height:calc(100% - var(--bar-h) - var(--bottom-h) - 24px); overflow:auto; }
+#place h2 { margin:0; font-size:1.25rem; }
+#place-body > .row:first-child { padding-right:40px; }
+#place .close { position:absolute; top:6px; right:6px; width:44px; height:44px; border:0; background:transparent; border-radius:10px; cursor:pointer; }
+#place .close:hover { background:var(--hover); }
+#place ul { margin:6px 0 0; padding-left:1.2em; }
+@media (min-width:1100px) { body.place-open #legend { left:calc(min(370px, 100% - 24px) + 24px); } }
+.banner { margin:0; padding:8px 14px; border-radius:999px; background:var(--accent); box-shadow:var(--float-shadow); justify-self:start; }
+.banner a { color:#111827; font-weight:600; }
+@media (max-width:1099px) {
+  #place { left:0; right:0; top:auto; bottom:var(--bottom-h); width:100%; border-radius:16px 16px 0 0; max-height:60%; }
+}
+.leaflet-container { font:inherit; background:var(--map-bg); }
+.leaflet-bar a, .leaflet-bar a:hover { background:var(--surface); color:var(--fg); border-color:var(--border); }
+.leaflet-bar { border:0 !important; box-shadow:var(--float-shadow) !important; }
+.leaflet-control-attribution { background:var(--surface) !important; color:var(--muted); opacity:.9; }
+.leaflet-control-attribution a { color:var(--primary); }
+.leaflet-tooltip.place-label { background:none; border:0; box-shadow:none; padding:0; color:var(--fg); font-weight:700; font-size:.8125rem;
+  text-shadow:0 0 3px var(--halo),0 0 3px var(--halo),0 0 6px var(--halo); white-space:nowrap; }
+.leaflet-tooltip.place-label.division { font-size:.9375rem; letter-spacing:.02em; }
+.leaflet-tooltip.place-label::before { display:none; }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#view-risk"><span data-l="en">Skip to the district list</span><span data-l="bn" lang="bn">জেলার তালিকায় যান</span></a>
+<header class="appbar" id="appbar">
+  <div class="brand">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--primary)"><path d="M12 2s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12z"/></svg>
+    <h1><span data-l="en">Dengue Link</span><span data-l="bn" lang="bn">ডেঙ্গু লিংক</span></h1>
+    <span class="date muted"><span data-l="en">Updated</span><span data-l="bn" lang="bn">হালনাগাদ</span> {{as_of}}</span>
+  </div>
+  <div class="search">
+    <label for="search" class="sr-only" id="search-label">Find an upazila or district</label>
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="search" type="search" autocomplete="off"
+      role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" aria-describedby="search-help">
+    <span id="search-help" class="sr-only"></span>
+    <ul id="search-results" role="listbox" aria-labelledby="search-label" hidden></ul>
+  </div>
+  <nav class="views" aria-label="Views" id="top-nav"></nav>
+  <div class="spacer"></div>
+  <button id="lang-toggle" class="round" type="button"></button>
+  <button id="theme-toggle" class="round" type="button" aria-pressed="false">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</header>
+
+<nav class="views" aria-label="Views" id="bottom-nav">
+  <ul>
+    <li><a href="#map"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg><span data-l="en">Map</span><span data-l="bn" lang="bn">মানচিত্র</span></a></li>
+    <li><a href="#risk"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><span data-l="en">Hotspots</span><span data-l="bn" lang="bn">ঝুঁকিপূর্ণ জেলা</span></a></li>
+    <li><a href="#control"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg><span data-l="en">Mosquito control</span><span data-l="bn" lang="bn">মশা নিধন</span></a></li>
+    <li><a href="#help"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg><span data-l="en">Get help</span><span data-l="bn" lang="bn">সাহায্য নিন</span></a></li>
+    <li><a href="#about"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg><span data-l="en">About</span><span data-l="bn" lang="bn">তথ্যসূত্র</span></a></li>
+  </ul>
+</nav>
+
+<main>
+  <section class="view" id="view-map" aria-labelledby="map-title">
+    <h2 id="map-title" class="sr-only" tabindex="-1"><span data-l="en">Dengue risk map for next week</span><span data-l="bn" lang="bn">আগামী সপ্তাহের ডেঙ্গু ঝুঁকির মানচিত্র</span></h2>
+    <div id="map" role="region"></div>
+    <div class="stack" id="top-stack">
+      <section class="overlay" id="answer" aria-labelledby="answer-title">
+        <div class="row"><h3 id="answer-title"></h3><span id="answer-badge"></span></div>
+        <p id="answer-line"></p>
+        <p id="answer-warning" class="trend up" hidden></p>
+        <div class="actions">
+          <button type="button" class="btn primary" id="answer-open"></button>
+          <button type="button" class="btn" id="locate"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg><span id="locate-label"></span></button>
+        </div>
+        <p id="answer-msg" class="muted small" role="status"></p>
+      </section>
+      {{novelty_banner}}
+      <div class="overlay" id="legend">
+        <h3 id="legend-title"></h3>
+        <ul id="legend-items"></ul>
+        <div id="week-row" hidden>
+          <label for="week" class="sr-only"><span data-l="en">Week shown on the map</span><span data-l="bn" lang="bn">মানচিত্রে যে সপ্তাহ দেখানো হচ্ছে</span></label>
+          <input type="range" id="week" min="0" max="1" step="1" value="1">
+          <p class="muted small" id="week-hint" aria-hidden="true"></p>
+          <p class="muted small" id="week-note" hidden><span data-l="en">Past weeks use each division's reported patients, shared between districts the same way as the forecast.</span><span data-l="bn" lang="bn">আগের সপ্তাহগুলোতে প্রতিটি বিভাগের প্রকাশিত রোগীর সংখ্যা পূর্বাভাসের মতো একই নিয়মে জেলাগুলোর মধ্যে ভাগ করা হয়েছে।</span></p>
+        </div>
+        <label><input type="checkbox" id="wards-toggle"> <span><span data-l="en">Dhaka North wards</span><span data-l="bn" lang="bn">ঢাকা উত্তরের ওয়ার্ড</span></span></label>
+        <div id="ward-key" hidden>
+          <p class="muted small"><span data-l="en">Wards: the city corporation's own rating</span><span data-l="bn" lang="bn">ওয়ার্ড: সিটি কর্পোরেশনের নিজস্ব মূল্যায়ন</span></p>
+          <p class="muted small" id="ward-key-date"></p>
+          <ul><li><i class="w-low"></i><span data-l="en">Low</span><span data-l="bn" lang="bn">কম</span></li><li><i class="w-mod"></i><span data-l="en">Moderate</span><span data-l="bn" lang="bn">মাঝারি</span></li><li><i class="w-high"></i><span data-l="en">High</span><span data-l="bn" lang="bn">বেশি</span></li></ul>
+        </div>
+      </div>
+    </div>
+    <section class="overlay" id="place" aria-live="polite" hidden>
+      <button type="button" class="close">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div id="place-body"></div>
+    </section>
+  </section>
+
+  <section class="view page" id="view-risk" aria-labelledby="risk-title" hidden>
+    <h2 id="risk-title" tabindex="-1"><span data-l="en">Where dengue could hit hardest next week</span><span data-l="bn" lang="bn">আগামী সপ্তাহে কোথায় ডেঙ্গু বেশি ছড়াতে পারে</span></h2>
+    {{national}}
+    <span id="switch-label" class="sr-only"><span data-l="en">Show by</span><span data-l="bn" lang="bn">যেভাবে দেখবেন</span></span>
+    <div class="switch" role="group" aria-labelledby="switch-label">
+      <button type="button" id="show-districts" aria-pressed="true"><span data-l="en">Districts</span><span data-l="bn" lang="bn">জেলা</span></button>
+      <button type="button" id="show-divisions" aria-pressed="false"><span data-l="en">Divisions</span><span data-l="bn" lang="bn">বিভাগ</span></button>
+    </div>
+    <div id="division-list" hidden>
+    <p class="lead"><span data-l="en">Is dengue going up or down in each division?</span><span data-l="bn" lang="bn">কোন বিভাগে ডেঙ্গু বাড়ছে, কোথায় কমছে।</span></p>
+    <ul class="cards" id="division-cards">{{div_cards}}</ul>
+    </div>
+    <div id="district-list">
+    <p class="lead"><span data-l="en">All 64 districts, starting with the ones where the most people are likely to get sick for their size.</span><span data-l="bn" lang="bn">৬৪টি জেলা। জনসংখ্যার তুলনায় যেখানে বেশি মানুষ অসুস্থ হতে পারেন, সেগুলো আগে।</span></p>
+    <ol class="cards" id="rising">{{rising}}</ol>
+    <details>
+      <summary><span data-l="en">Show as a table</span><span data-l="bn" lang="bn">টেবিলে দেখুন</span></summary>
+      <div class="table-wrap" tabindex="0" role="region" aria-labelledby="table-caption">
+        <table>
+          <caption id="table-caption"><span data-l="en">All districts, highest first</span><span data-l="bn" lang="bn">সব জেলা, বেশি থেকে কম</span></caption>
+          <thead><tr>
+            <th scope="col"><span data-l="en">District</span><span data-l="bn" lang="bn">জেলা</span></th>
+            <th scope="col"><span data-l="en">Division</span><span data-l="bn" lang="bn">বিভাগ</span></th>
+            <th scope="col"><span data-l="en">Risk</span><span data-l="bn" lang="bn">ঝুঁকি</span></th>
+            <th scope="col"><span data-l="en">Expected next week</span><span data-l="bn" lang="bn">আগামী সপ্তাহে সম্ভাব্য</span></th>
+            <th scope="col"><span data-l="en">Admitted, last 2 weeks</span><span data-l="bn" lang="bn">গত ২ সপ্তাহে ভর্তি</span></th>
+            <th scope="col"><span data-l="en">Share of division</span><span data-l="bn" lang="bn">বিভাগের রোগীর কত অংশ</span></th>
+            <th scope="col"><span data-l="en">Per 100,000 people</span><span data-l="bn" lang="bn">প্রতি ১ লাখে</span></th>
+            <th scope="col"><span data-l="en">In hospital now</span><span data-l="bn" lang="bn">এখন হাসপাতালে</span></th>
+            <th scope="col"><span data-l="en">Deaths this year</span><span data-l="bn" lang="bn">এ বছর মৃত্যু</span></th>
+          </tr></thead>
+          <tbody>{{rows}}</tbody>
+        </table>
+      </div>
+    </details>
+    </div>
+    {{who}}
+  </section>
+
+  <section class="view page" id="view-control" aria-labelledby="control-title" hidden>
+    <div class="prose-wide">
+    <h2 id="control-title" tabindex="-1"><span data-l="en">Mosquito control</span><span data-l="bn" lang="bn">মশা নিধন</span></h2>
+    <p class="lead"><span data-l="en">What the city is doing about mosquitoes, and whether it seems to be working.</span><span data-l="bn" lang="bn">মশা মারতে কী করা হচ্ছে, আর তাতে কাজ হচ্ছে কি না।</span></p>
+    {{control}}
+    </div>
+  </section>
+
+  <section class="view page" id="view-help" aria-labelledby="help-title" hidden>
+    <div class="prose-wide">
+    <h2 id="help-title" tabindex="-1"><span data-l="en">Get help</span><span data-l="bn" lang="bn">সাহায্য নিন</span></h2>
+    <p class="lead"><span data-l="en">Who to call, how to look after someone with dengue at home, and when to go to hospital.</span><span data-l="bn" lang="bn">কাকে ফোন করবেন, বাড়িতে ডেঙ্গু রোগীর যত্ন কীভাবে নেবেন, আর কখন হাসপাতালে যাবেন।</span></p>
+
+    <h3><span data-l="en">Who to call</span><span data-l="bn" lang="bn">কাকে ফোন করবেন</span></h3>
+    <ul class="cards">
+      <li class="card"><h4 class="call"><a href="tel:16263"><span data-l="en">16263</span><span data-l="bn" lang="bn">১৬২৬৩</span></a></h4>
+        <p><strong><span data-l="en">Talk to a doctor</span><span data-l="bn" lang="bn">ডাক্তারের সঙ্গে কথা বলুন</span></strong></p>
+        <p><span data-l="en">The government health line, Shastho Batayon. Open 24 hours. Press 0 for a doctor, 2 for ambulance information.</span><span data-l="bn" lang="bn">সরকারি হেল্পলাইন “স্বাস্থ্য বাতায়ন”। ২৪ ঘণ্টা খোলা। ডাক্তারের সঙ্গে কথা বলতে ০ চাপুন, অ্যাম্বুলেন্সের তথ্য জানতে ২ চাপুন।</span></p>
+        <p class="muted small"><a href="https://16263.dghs.gov.bd/" target="_blank" rel="noopener">16263.dghs.gov.bd</a></p></li>
+      <li class="card"><h4 class="call"><a href="tel:999"><span data-l="en">999</span><span data-l="bn" lang="bn">৯৯৯</span></a></h4>
+        <p><strong><span data-l="en">Emergency ambulance</span><span data-l="bn" lang="bn">জরুরি অ্যাম্বুলেন্স</span></strong></p>
+        <p><span data-l="en">National emergency service: ambulance, police and fire service. Free to call, 24 hours.</span><span data-l="bn" lang="bn">জাতীয় জরুরি সেবা: অ্যাম্বুলেন্স, পুলিশ ও ফায়ার সার্ভিস। কল করতে টাকা লাগে না। ২৪ ঘণ্টা খোলা।</span></p>
+        <p class="muted small"><a href="https://bangladesh.gov.bd/pages/static-pages/69a55ba386514399668e4e89" target="_blank" rel="noopener">bangladesh.gov.bd</a></p></li>
+      <li class="card"><h4 class="call"><a href="tel:01709900888"><span data-l="en">01709900888</span><span data-l="bn" lang="bn">০১৭০৯৯০০৮৮৮</span></a></h4>
+        <p><strong><span data-l="en">Dhaka South: report mosquito breeding</span><span data-l="bn" lang="bn">ঢাকা দক্ষিণ: কোথাও মশা জন্মাচ্ছে? জানান</span></strong></p>
+        <p><span data-l="en">Seen standing water or Aedes larvae in Dhaka South? Tell the city corporation's control room.</span><span data-l="bn" lang="bn">ঢাকা দক্ষিণে জমা পানি বা এডিসের লার্ভা দেখেছেন? সিটি কর্পোরেশনের নিয়ন্ত্রণ কক্ষে জানান।</span></p>
+        <p class="muted small"><a href="https://dscc.gov.bd/" target="_blank" rel="noopener">dscc.gov.bd</a> · <span data-l="en">In Dhaka North, see <a href="https://dncc.gov.bd/" target="_blank" rel="noopener">dncc.gov.bd</a> for its control room.</span><span data-l="bn" lang="bn">ঢাকা উত্তরের নিয়ন্ত্রণ কক্ষের নম্বর পাবেন <a href="https://dncc.gov.bd/" target="_blank" rel="noopener">dncc.gov.bd</a>-এ।</span></p></li>
+    </ul>
+    {{hospitals}}
+    <div class="prose">
+    <h3><span data-l="en">Keep dengue away</span><span data-l="bn" lang="bn">ডেঙ্গু থেকে দূরে থাকুন</span></h3>
+    <p><span data-l="en">Dengue spreads through the bite of the Aedes mosquito. A few habits make a big difference.</span><span data-l="bn" lang="bn">এডিস মশার কামড়ে ডেঙ্গু ছড়ায়। কয়েকটি অভ্যাস মানলেই অনেকটা নিরাপদ থাকা যায়।</span></p>
+    </div>
+    <ul class="cards">
+      <li class="card"><h4><span data-l="en">Stop mosquitoes breeding</span><span data-l="bn" lang="bn">মশা জন্মাতে দেবেন না</span></h4>
+        <p><span data-l="en">Don't let water collect. Empty buckets, tyres, flower-pot trays and AC trays at least once a week.</span><span data-l="bn" lang="bn">কোথাও পানি জমতে দেবেন না। বালতি, টায়ার, ফুলের টবের নিচের ট্রে আর এসির ট্রে সপ্তাহে অন্তত একবার খালি করুন।</span></p></li>
+      <li class="card"><h4><span data-l="en">Avoid bites</span><span data-l="bn" lang="bn">কামড় থেকে বাঁচুন</span></h4>
+        <p><span data-l="en">Sleep under a mosquito net, and use repellent in the early morning and late afternoon, when Aedes bites most.</span><span data-l="bn" lang="bn">মশারি টানিয়ে ঘুমান। ভোরে আর শেষ বিকেলে এডিস মশা বেশি কামড়ায়, তখন মশা তাড়ানোর ক্রিম ব্যবহার করুন।</span></p></li>
+      <li class="card"><h4><span data-l="en">If you get a fever</span><span data-l="bn" lang="bn">জ্বর হলে</span></h4>
+        <p><span data-l="en">Got a high fever? See a doctor. Take only paracetamol for pain until dengue has been ruled out, and drink plenty of fluids.</span><span data-l="bn" lang="bn">জ্বর বেশি হলে দেরি না করে ডাক্তার দেখান। ডেঙ্গু কি না নিশ্চিত হওয়ার আগে প্যারাসিটামল ছাড়া অন্য কোনো ব্যথার ওষুধ খাবেন না, আর বেশি করে পানি ও তরল খাবার খান।</span></p></li>
+    </ul>
+    <section id="home-check" aria-labelledby="home-title">
+    <h3 id="home-title"><span data-l="en">Check your home this week</span><span data-l="bn" lang="bn">এ সপ্তাহে নিজের বাড়ি দেখে নিন</span></h3>
+    <p class="muted"><span data-l="en">Aedes lays its eggs in clean standing water. Tick each one once it is empty or covered. Your ticks stay on this device and clear after a week.</span><span data-l="bn" lang="bn">এডিস মশা পরিষ্কার জমা পানিতে ডিম পাড়ে। প্রতিটি জায়গা খালি করা বা ঢেকে দেওয়া হলে টিক চিহ্ন দিন। চিহ্নগুলো এই ডিভাইসেই থাকে, এক সপ্তাহ পর মুছে যায়।</span></p>
+    <p id="home-rain" class="note" hidden></p>
+    <ul class="checks">
+      <li><label><input type="checkbox" data-item="pots"> <span><span data-l="en">Flower pots and the trays under them</span><span data-l="bn" lang="bn">ফুলের টব ও টবের নিচের ট্রে</span></span></label></li>
+      <li><label><input type="checkbox" data-item="buckets"> <span><span data-l="en">Buckets, drums and tubs</span><span data-l="bn" lang="bn">বালতি, ড্রাম ও গামলা</span></span></label></li>
+      <li><label><input type="checkbox" data-item="tyres"> <span><span data-l="en">Old tyres, tins and coconut shells</span><span data-l="bn" lang="bn">পুরোনো টায়ার, কৌটা ও ডাবের খোসা</span></span></label></li>
+      <li><label><input type="checkbox" data-item="ac"> <span><span data-l="en">AC tray and the tray behind the fridge</span><span data-l="bn" lang="bn">এসির ট্রে ও ফ্রিজের পেছনের ট্রে</span></span></label></li>
+      <li><label><input type="checkbox" data-item="roof"> <span><span data-l="en">Roof, balcony and gutters</span><span data-l="bn" lang="bn">ছাদ, বারান্দা ও পানির নালা</span></span></label></li>
+      <li><label><input type="checkbox" data-item="tank"> <span><span data-l="en">Water tank and stored water, covered</span><span data-l="bn" lang="bn">পানির ট্যাংক ও জমিয়ে রাখা পানি ঢেকে রাখা</span></span></label></li>
+    </ul>
+    <p id="home-done" class="muted" role="status"></p>
+    </section>
+    <div class="prose">
+    <h3><span data-l="en">Looking after dengue at home</span><span data-l="bn" lang="bn">বাড়িতে ডেঙ্গু রোগীর যত্ন</span></h3>
+    <p class="muted"><span data-l="en">For patients a doctor has sent home. These points come from the government's guideline for doctors.</span><span data-l="bn" lang="bn">ডাক্তার যাঁদের বাড়িতে থাকতে বলেছেন, তাঁদের জন্য। কথাগুলো ডাক্তারদের জন্য তৈরি সরকারি নির্দেশিকা থেকে নেওয়া।</span></p>
+    <ul class="steps">
+      <li><span data-l="en">Rest, preferably under a mosquito net, so mosquitoes can't carry the virus to others.</span><span data-l="bn" lang="bn">বিশ্রাম নিন, সম্ভব হলে মশারির ভেতরে, যাতে মশা আপনার কাছ থেকে অন্যদের মধ্যে ভাইরাস ছড়াতে না পারে।</span></li>
+      <li><span data-l="en">Drink about 2.4 litres of fluid through the day (around 10 glasses). ORS, green coconut water, fruit juice and soup are better than plain water alone.</span><span data-l="bn" lang="bn">সারা দিনে প্রায় ২.৪ লিটার (প্রায় ১০ গ্লাস) তরল খাবার খান। শুধু পানির চেয়ে ওআরএস (খাবার স্যালাইন), ডাবের পানি, ফলের রস ও স্যুপ ভালো।</span></li>
+      <li><span data-l="en">For fever, sponge with lukewarm water and take paracetamol only. Adults: no more than 3 g a day (six 500 mg tablets). For a child, ask a doctor for the dose.</span><span data-l="bn" lang="bn">জ্বরের জন্য কুসুম গরম পানিতে শরীর মুছে দিন, আর শুধু প্যারাসিটামল খান। প্রাপ্তবয়স্কদের জন্য দিনে ৩ গ্রামের বেশি নয় (৫০০ মিলিগ্রামের ছয়টি ট্যাবলেট)। শিশুর ডোজ ডাক্তারের কাছ থেকে জেনে নিন।</span></li>
+      <li><span data-l="en">The fever may not go away fully with paracetamol. Don't take extra.</span><span data-l="bn" lang="bn">প্যারাসিটামলে জ্বর পুরোপুরি না-ও নামতে পারে। তাই বলে বেশি খাবেন না।</span></li>
+      <li><span data-l="en">Do not take painkillers such as ibuprofen, diclofenac or aspirin (NSAIDs), or steroids.</span><span data-l="bn" lang="bn">আইবুপ্রোফেন, ডাইক্লোফেনাক বা অ্যাসপিরিনের মতো ব্যথার ওষুধ (এনএসএআইডি) এবং স্টেরয়েড খাবেন না।</span></li>
+      <li><span data-l="en">If you take a blood thinner every day (warfarin, aspirin, clopidogrel), ask your doctor before the next dose.</span><span data-l="bn" lang="bn">প্রতিদিন রক্ত পাতলা করার ওষুধ (ওয়ারফারিন, অ্যাসপিরিন, ক্লোপিডোগ্রেল) খেলে পরের ডোজের আগে ডাক্তারকে জিজ্ঞেস করুন।</span></li>
+      <li><span data-l="en">Pass urine every 3 to 4 hours. If it becomes much less, that is a warning.</span><span data-l="bn" lang="bn">প্রতি ৩ থেকে ৪ ঘণ্টায় প্রস্রাব হওয়া উচিত। অনেক কমে গেলে সেটা সতর্কসংকেত।</span></li>
+      <li><span data-l="en">Eat light food if you feel like it. Avoid red or dark food and drinks (beetroot, red dragon fruit), which can be mistaken for blood.</span><span data-l="bn" lang="bn">খেতে ইচ্ছে করলে হালকা খাবার খান। লাল বা গাঢ় রঙের খাবার ও পানীয় (বিট, লাল ড্রাগন ফল) এড়িয়ে চলুন, এগুলোকে রক্ত বলে ভুল হতে পারে।</span></li>
+    </ul>
+    <h3><span data-l="en">Go to hospital straight away if</span><span data-l="bn" lang="bn">এসব হলে সঙ্গে সঙ্গে হাসপাতালে যান</span></h3>
+    <ul class="steps">
+      <li><span data-l="en">You feel worse as the fever goes down</span><span data-l="bn" lang="bn">জ্বর কমার সঙ্গে সঙ্গে শরীর আরও খারাপ লাগছে</span></li>
+      <li><span data-l="en">You can't keep fluids down</span><span data-l="bn" lang="bn">তরল খাবার বা পানি পেটে রাখতে পারছেন না</span></li>
+      <li><span data-l="en">Severe stomach pain</span><span data-l="bn" lang="bn">পেটে তীব্র ব্যথা</span></li>
+      <li><span data-l="en">Unusual sleepiness, irritability or restlessness</span><span data-l="bn" lang="bn">অস্বাভাবিক ঘুম ঘুম ভাব, খিটখিটে মেজাজ বা অস্থিরতা</span></li>
+      <li><span data-l="en">Any bleeding: from the nose or gums, vomiting blood, black tarry stool, or unusual vaginal bleeding</span><span data-l="bn" lang="bn">যেকোনো রক্তপাত: নাক বা দাঁতের মাড়ি থেকে, রক্তবমি, আলকাতরার মতো কালো পায়খানা, বা মাসিকের সময় ছাড়া কিংবা স্বাভাবিকের চেয়ে বেশি রক্তস্রাব</span></li>
+      <li><span data-l="en">Little or no urine for 4 to 6 hours</span><span data-l="bn" lang="bn">৪ থেকে ৬ ঘণ্টা ধরে প্রস্রাব খুব কম বা একেবারে বন্ধ</span></li>
+      <li><span data-l="en">Cold and clammy hands and feet</span><span data-l="bn" lang="bn">হাত-পা ঠান্ডা ও ঘামে ভেজা</span></li>
+      <li><span data-l="en">Difficulty breathing</span><span data-l="bn" lang="bn">শ্বাস নিতে কষ্ট</span></li>
+    </ul>
+    <p class="note"><span data-l="en"><strong>A falling fever is not a sign of recovery.</strong> These danger signs often start just as the temperature drops.</span><span data-l="bn" lang="bn"><strong>জ্বর কমা মানেই সেরে ওঠা নয়।</strong> জ্বর নামার সময়ই এসব বিপদচিহ্ন বেশি দেখা দেয়।</span></p>
+    <p class="muted"><span data-l="en">Source: <a href="https://dghs.gov.bd/pages/static-pages/6922e05c933eb65569e26afe" target="_blank" rel="noopener">National Guideline for Clinical Management of Dengue</a>, 5th edition (2025), Directorate General of Health Services, pages 47 and 48. We put it in simpler words. It does not replace a doctor.</span><span data-l="bn" lang="bn">সূত্র: <a href="https://dghs.gov.bd/pages/static-pages/6922e05c933eb65569e26afe" target="_blank" rel="noopener">National Guideline for Clinical Management of Dengue</a>, ৫ম সংস্করণ (২০২৫), স্বাস্থ্য অধিদপ্তর, পৃষ্ঠা ৪৭ ও ৪৮। আমরা সহজ ভাষায় লিখেছি। এটি ডাক্তারের পরামর্শের বিকল্প নয়।</span></p>
+    </div>
+    </div>
+  </section>
+
+  <section class="view page" id="view-about" aria-labelledby="about-title" hidden>
+    <div class="prose">
+    <h2 id="about-title" tabindex="-1"><span data-l="en">About this data</span><span data-l="bn" lang="bn">তথ্যসূত্র</span></h2>
+    <p class="note"><span data-l="en"><strong>How we get these numbers.</strong> The health directorate (DGHS) only publishes past dengue figures for each division.
+      So we forecast each division first, then share that out between its districts by how many patients each one had recently
+      (division forecast × district share). Nobody publishes dengue figures for upazilas, which is why the map stops at districts.
+      The Dhaka North ward information shows spraying that was <strong>scheduled</strong>, not proof that it happened.
+      When you slide the map back to an earlier week, it shows that week's reported patients in each division, shared between districts in the same way.</span><span data-l="bn" lang="bn"><strong>হিসাব কীভাবে করা হয়।</strong> স্বাস্থ্য অধিদপ্তর আগের ডেঙ্গুর হিসাব শুধু বিভাগ ধরে প্রকাশ করে।
+      তাই আমরা আগে প্রতিটি বিভাগের পূর্বাভাস করি, তারপর সাম্প্রতিক রোগীর সংখ্যা অনুযায়ী তা জেলাগুলোর মধ্যে ভাগ করি।
+      উপজেলার ডেঙ্গুর হিসাব কেউ প্রকাশ করে না, তাই মানচিত্র জেলা পর্যন্তই। ঢাকা উত্তরের ওয়ার্ডের তথ্য হলো ওষুধ ছিটানোর <strong>পরিকল্পনা</strong>,
+      সত্যিই ছিটানো হয়েছে কি না তার প্রমাণ নয়।
+      মানচিত্র পেছনের কোনো সপ্তাহে নিলে সেই সপ্তাহে প্রতিটি বিভাগের প্রকাশিত রোগীর সংখ্যা একই নিয়মে জেলাগুলোর মধ্যে ভাগ করে দেখানো হয়।</span></p>
+    <h3><span data-l="en">How accurate is the forecast?</span><span data-l="bn" lang="bn">পূর্বাভাস কতটা মেলে?</span></h3>
+    {{accuracy}}
+    <h3><span data-l="en">Early warning from a fly's brain</span><span data-l="bn" lang="bn">মাছির মস্তিষ্ক থেকে আগাম সতর্কতা</span></h3>
+    <p class="muted"><span data-l="en">We copied the wiring of the part of a fruit fly's brain that learns smells, using the FlyWire brain map
+      (55 input channels feeding 2,421 cells). Each week it "smells" how cases are rising across the divisions and tells us when that pattern is new.</span><span data-l="bn" lang="bn">ফলের মাছির মস্তিষ্কের যে অংশ গন্ধ চিনতে শেখে, FlyWire মস্তিষ্ক-মানচিত্র থেকে তার আসল সংযোগ
+      (৫৫টি ইনপুট থেকে ২,৪২১টি কোষ) আমরা নকল করেছি। প্রতি সপ্তাহে এটি বিভাগগুলোতে রোগী বাড়ার ধরন "শুঁকে" দেখে, আর ধরনটা নতুন হলে জানিয়ে দেয়।</span></p>
+    {{novelty}}
+    <h3><span data-l="en">Where the data comes from</span><span data-l="bn" lang="bn">তথ্য কোথা থেকে আসে</span></h3>
+    <p class="muted"><span data-l="en">We fetch everything fresh once a day. If a source is down, we say so here instead of showing old numbers.</span><span data-l="bn" lang="bn">সব তথ্য দিনে একবার নতুন করে আনা হয়। কোনো উৎস বন্ধ থাকলে পুরোনো হিসাব না দেখিয়ে এখানে তা জানিয়ে দেওয়া হয়।</span></p>
+    <ul>{{sources}}</ul>
+    <p class="muted"><span data-l="en">If you use your location, it stays on your device. The nearest hospital is worked out in your browser and nothing about you is sent to us.</span><span data-l="bn" lang="bn">আপনার অবস্থান ব্যবহার করলে তা আপনার ডিভাইসেই থাকে। কাছের হাসপাতাল আপনার ব্রাউজারেই হিসাব করা হয়, আপনার কোনো তথ্য আমাদের কাছে আসে না।</span></p>
+    <p class="muted"><span data-l="en">Map outlines: geoBoundaries (CC BY 3.0 IGO). Bangla place names: bangladesh-geocode (MIT). These are estimates, not official DGHS figures.</span><span data-l="bn" lang="bn">মানচিত্রের সীমানা: geoBoundaries (CC BY 3.0 IGO)। বাংলা স্থাননাম: bangladesh-geocode (MIT)। এগুলো অনুমান, স্বাস্থ্য অধিদপ্তরের সরকারি হিসাব নয়।</span></p>
+    </div>
+  </section>
+</main>
+
+<script id="data" type="application/json">{{payload}}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+<script>
+(function () {
+  var D = JSON.parse(document.getElementById("data").textContent);
+  var root = document.documentElement;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var FILL = ["--f0", "--f1", "--f2", "--f3", "--f4"];
+  var T = {
+    en: {
+      search: "Search a district or upazila", searchShort: "Search a place", searchHelp: "Start typing a place name, then pick it with the arrow keys and Enter.",
+      map: "Dengue risk map for the 64 districts. You can also use the search box or the Hotspots list.",
+      dark: "Dark mode", close: "Close", langBtn: "বাংলা", langLabel: "বাংলায় দেখুন",
+      risk: function (l) { return l + " risk"; },
+      tip: function (name, l) { return name + ": " + l.toLowerCase() + " risk"; },
+      inDistrict: function (u, d) { return u + " is in " + d + " district. We don't have upazila figures, so you're seeing the numbers for the whole district."; },
+      division: function (v) { return v + " division"; },
+      expected: function (d, n) { return "Around " + n + " people may be admitted to hospital with dengue next week."; },
+      trend: function (v, x) { return x > 0.05 ? "Across " + v + " division, cases may rise by about " + pct(x) + " next week."
+        : x < -0.05 ? "Across " + v + " division, cases may fall by about " + pct(-x) + " next week." : "Across " + v + " division, cases should stay about the same."; },
+      perLakh: function (r) { return "That's about " + r + " for every 100,000 people."; },
+      inHospital: function (n) { return "In hospital right now: " + n; },
+      deaths: function (n) { return "Deaths this year: " + n; },
+      call: "Call 16263 for a doctor", help: "Get help",
+      cityLine: function (c) { return "New patients in the last day: Dhaka North " + num(c.DNCC.day) + ", Dhaka South " + num(c.DSCC.day) + ". This year: " + num(c.DNCC.year) + " and " + num(c.DSCC.year) + "."; },
+      pick: "Pick your district", pickLine: "See how bad dengue is where you live, and whether it is getting worse.",
+      searchBtn: "Search", seeDetails: "See details", locate: "Use my location",
+      locPrivacy: "Your location stays on this device.", locWait: "Finding where you are…",
+      locDenied: "We couldn't get your location. Search for your district instead.",
+      locOutside: "You seem to be outside Bangladesh. Search for a district instead.",
+      district: function (d) { return d + " district"; },
+      answerLine: function (x, n) { return (x > 0.05 ? "Going up. " : x < -0.05 ? "Going down. " : "Holding steady. ") + "About " + n + " people may need hospital care for dengue next week."; },
+      legendNext: "Dengue risk next week", legendPast: function (d) { return "Dengue risk, week starting " + d; },
+      weekText: function (d) { return d ? "Week starting " + d + ", reported" : "Next week, forecast"; },
+      coverage: { "ONE OR TWO PLACES": "one or two places", "A FEW PLACES": "a few places", "MANY PLACES": "many places", "MOST PLACES": "most places" },
+      rainLine: function (v, where, heavy, day) { return "Meteorological Department's latest forecast (" + day + "): rain at " + (where || "places") + " in " + v + " division" + (heavy ? ", heavy in places" : "") + ". When it stops, empty any water left in buckets, tubs, tyres and plant pots."; },
+      warnTitle: "Official warning", warnUntil: function (d) { return "In force until " + d + "."; }, warnLink: "Read the Met Department's notice",
+      homeRain: function (v) { return "The Met Department expects rain in " + v + " division. Check these again once it stops."; }, homeDone: "All done. Check again in a week, or after the next rain.",
+      wardRating: function (l, n) { return "City corporation's rating: " + l.toLowerCase() + " risk. " + n + " patients in the last 3 weeks."; },
+      rating: { Low: "Low", Moderate: "Moderate", High: "High" },
+      sprayTitle: function (n) { return "Ward " + n + ": which days each area is sprayed"; }, sprayNone: "The city's area-by-area list doesn't cover this ward yet.", and: " and ",
+      weekHint: "Slide left to see earlier weeks",
+      ratedOn: function (d) { return "Rated on " + d; }, listChecked: function (d) { return "The city's list, checked on " + d + "."; },
+      nearestBtn: "Nearest hospital",
+      fromYou: "Closest to where you are now.", fromDistrict: function (d) { return "Closest to the centre of " + d + " district. Use your location for a better answer."; },
+      fromNowhere: "Pick a district on the map, or use your location, and the nearest hospitals appear here.",
+      away: function (n) { return "About " + n + " km away"; }, emergency: "Emergency room", ambulance: "Ambulance", beds: function (n) { return n + " beds"; },
+      alsoIn: function (d) { return "Also in " + d + " district. The registry has no usable map pin for these, so we can't say how far they are."; },
+      maps: "Open in Google Maps", inWard: function (w) { return "Ward " + w; },
+      kinds: { district: "District hospital", upazila: "Upazila health complex", medical_college: "Medical college hospital" },
+      centreKinds: { free: "Free dengue test", diagnostic: "Diagnostic centre", private: "Private hospital or clinic", government: "Government hospital" },
+      centreTip: function (name, kind) { return name + " (" + kind.toLowerCase() + ")"; },
+      details: "More detail",
+      detailLines: function (d, dv) { return ["Expected next week: " + num(d.next7) + " patients", "Admitted in the last 2 weeks (DGHS daily reports): " + num(d.recent_cases),
+        "This district's share of " + dv + " division's patients: " + pct(d.share), "Worked out as: division forecast × district share"]; },
+      noData: "We have no dengue figures for this area.",
+      subUpazila: function (d) { return "Upazila, " + d + " district"; }, subDistrict: function (v) { return "District, " + v + " division"; },
+      noMatch: function (q) { return "Nothing found for “" + q + "”. Try a district name such as Dhaka or Sylhet."; },
+      ward: function (n, days) { return "Ward " + n + ": " + (days != null ? "spraying " + days + " days a week" : "no spraying plan published"); },
+      zoneCatch: function (z, name, n) { return name + " zone: " + n + " Aedes mosquitoes caught last week"; },
+      title: "Dengue Link | Where dengue could rise next week", views: "Menu"
+    },
+    bn: {
+      search: "জেলা বা উপজেলা খুঁজুন", searchShort: "জায়গা খুঁজুন", searchHelp: "জায়গার নাম লিখতে শুরু করুন, তারপর তীর-চিহ্ন আর এন্টার দিয়ে বেছে নিন।",
+      map: "৬৪টি জেলার ডেঙ্গু ঝুঁকির মানচিত্র। খোঁজার ঘর বা ঝুঁকিপূর্ণ জেলার তালিকাও ব্যবহার করতে পারেন।",
+      dark: "ডার্ক মোড", close: "বন্ধ করুন", langBtn: "English", langLabel: "Switch to English",
+      risk: function (l) { return "ঝুঁকি " + l; },
+      tip: function (name, l) { return name + ": ঝুঁকি " + l; },
+      inDistrict: function (u, d) { return u + " পড়েছে " + d + " জেলায়। উপজেলাভিত্তিক হিসাব পাওয়া যায় না, তাই পুরো জেলার হিসাব দেখানো হচ্ছে।"; },
+      division: function (v) { return v + " বিভাগ"; },
+      expected: function (d, n) { return "আগামী সপ্তাহে প্রায় " + n + " জন ডেঙ্গু নিয়ে হাসপাতালে ভর্তি হতে পারেন।"; },
+      trend: function (v, x) { return x > 0.05 ? v + " বিভাগে আগামী সপ্তাহে রোগী প্রায় " + pct(x) + " বাড়তে পারে।"
+        : x < -0.05 ? v + " বিভাগে আগামী সপ্তাহে রোগী প্রায় " + pct(-x) + " কমতে পারে।" : v + " বিভাগে আগামী সপ্তাহে রোগীর সংখ্যা মোটামুটি একই থাকতে পারে।"; },
+      perLakh: function (r) { return "অর্থাৎ প্রতি ১ লাখ মানুষে প্রায় " + r + " জন।"; },
+      inHospital: function (n) { return "এখন হাসপাতালে: " + n + " জন"; },
+      deaths: function (n) { return "এ বছর মৃত্যু: " + n + " জন"; },
+      call: "ডাক্তারের পরামর্শ নিতে ফোন করুন: ১৬২৬৩", help: "সাহায্য নিন",
+      cityLine: function (c) { return "গত এক দিনে নতুন রোগী: ঢাকা উত্তরে " + num(c.DNCC.day) + " জন, ঢাকা দক্ষিণে " + num(c.DSCC.day) + " জন। এ বছর মোট: " + num(c.DNCC.year) + " ও " + num(c.DSCC.year) + " জন।"; },
+      pick: "আপনার জেলা বেছে নিন", pickLine: "আপনার এলাকায় ডেঙ্গুর অবস্থা কেমন, বাড়ছে না কমছে, দেখে নিন।",
+      searchBtn: "খুঁজুন", seeDetails: "বিস্তারিত দেখুন", locate: "আমার অবস্থান ব্যবহার করুন",
+      locPrivacy: "আপনার অবস্থান এই ডিভাইসের বাইরে যায় না।", locWait: "আপনার অবস্থান খোঁজা হচ্ছে…",
+      locDenied: "আপনার অবস্থান জানা গেল না। জেলার নাম লিখে খুঁজুন।",
+      locOutside: "মনে হচ্ছে আপনি বাংলাদেশের বাইরে। জেলার নাম লিখে খুঁজুন।",
+      district: function (d) { return d + " জেলা"; },
+      answerLine: function (x, n) { return (x > 0.05 ? "বাড়ছে। " : x < -0.05 ? "কমছে। " : "প্রায় একই আছে। ") + "আগামী সপ্তাহে প্রায় " + n + " জনকে ডেঙ্গু নিয়ে হাসপাতালে যেতে হতে পারে।"; },
+      legendNext: "আগামী সপ্তাহে ডেঙ্গুর ঝুঁকি", legendPast: function (d) { return d + " শুরু হওয়া সপ্তাহে ডেঙ্গুর ঝুঁকি"; },
+      weekText: function (d) { return d ? d + " শুরু হওয়া সপ্তাহ, প্রকাশিত হিসাব" : "আগামী সপ্তাহ, পূর্বাভাস"; },
+      coverage: { "ONE OR TWO PLACES": "দু-এক জায়গায়", "A FEW PLACES": "কিছু কিছু জায়গায়", "MANY PLACES": "অনেক জায়গায়", "MOST PLACES": "অধিকাংশ জায়গায়" },
+      rainLine: function (v, where, heavy, day) { return "আবহাওয়া অধিদপ্তরের সর্বশেষ পূর্বাভাস (" + day + "): " + v + " বিভাগের " + (where || "কোথাও কোথাও") + " বৃষ্টি হতে পারে" + (heavy ? ", কোথাও কোথাও ভারী" : "") + "। বৃষ্টি থামলে বালতি, গামলা, টায়ার আর ফুলের টবে জমা পানি ফেলে দিন।"; },
+      warnTitle: "সরকারি সতর্কবার্তা", warnUntil: function (d) { return d + " পর্যন্ত বহাল।"; }, warnLink: "আবহাওয়া অধিদপ্তরের বিজ্ঞপ্তি পড়ুন",
+      homeRain: function (v) { return "আবহাওয়া অধিদপ্তর বলছে, " + v + " বিভাগে বৃষ্টি হতে পারে। বৃষ্টি থামলে এগুলো আবার দেখে নিন।"; }, homeDone: "সব দেখা হয়েছে। এক সপ্তাহ পর, অথবা পরের বৃষ্টির পর আবার দেখুন।",
+      wardRating: function (l, n) { return "সিটি কর্পোরেশনের মূল্যায়ন: ঝুঁকি " + l + "। গত ৩ সপ্তাহে রোগী " + n + " জন।"; },
+      rating: { Low: "কম", Moderate: "মাঝারি", High: "বেশি" },
+      sprayTitle: function (n) { return n + " নম্বর ওয়ার্ড: কোন এলাকায় কোন দিন ওষুধ ছিটানো হয়"; }, sprayNone: "সিটি কর্পোরেশনের এলাকাভিত্তিক তালিকায় এই ওয়ার্ড এখনো নেই।", and: " ও ",
+      weekHint: "আগের সপ্তাহ দেখতে বাঁ দিকে টানুন",
+      ratedOn: function (d) { return d + " তারিখের মূল্যায়ন"; }, listChecked: function (d) { return "সিটি কর্পোরেশনের তালিকা, সর্বশেষ যাচাই " + d + "।"; },
+      nearestBtn: "কাছের হাসপাতাল",
+      fromYou: "আপনি এখন যেখানে আছেন, সেখান থেকে সবচেয়ে কাছের হাসপাতাল।", fromDistrict: function (d) { return d + " জেলার কেন্দ্র থেকে হিসাব করা সবচেয়ে কাছের হাসপাতাল। আরও ঠিকঠাক জানতে আপনার অবস্থান ব্যবহার করুন।"; },
+      fromNowhere: "মানচিত্রে একটি জেলা বেছে নিন, অথবা আপনার অবস্থান ব্যবহার করুন। কাছের হাসপাতালগুলো এখানে দেখা যাবে।",
+      away: function (n) { return "প্রায় " + n + " কিমি দূরে"; }, emergency: "জরুরি বিভাগ", ambulance: "অ্যাম্বুলেন্স", beds: function (n) { return n + " শয্যা"; },
+      alsoIn: function (d) { return d + " জেলায় আরও আছে। এগুলোর অবস্থান তালিকায় ঠিকমতো দেওয়া নেই, তাই দূরত্ব বলা যাচ্ছে না।"; },
+      maps: "গুগল ম্যাপে দেখুন", inWard: function (w) { return w + " নম্বর ওয়ার্ড"; },
+      kinds: { district: "জেলা হাসপাতাল", upazila: "উপজেলা স্বাস্থ্য কমপ্লেক্স", medical_college: "মেডিকেল কলেজ হাসপাতাল" },
+      centreKinds: { free: "বিনা মূল্যে ডেঙ্গু পরীক্ষা", diagnostic: "ডায়াগনস্টিক সেন্টার", private: "বেসরকারি হাসপাতাল বা ক্লিনিক", government: "সরকারি হাসপাতাল" },
+      centreTip: function (name, kind) { return name + " (" + kind + ")"; },
+      details: "আরও দেখুন",
+      detailLines: function (d, dv) { return ["আগামী সপ্তাহে সম্ভাব্য রোগী: " + num(d.next7) + " জন", "গত ২ সপ্তাহে ভর্তি (স্বাস্থ্য অধিদপ্তরের দৈনিক হিসাব): " + num(d.recent_cases) + " জন",
+        dv + " বিভাগের রোগীর মধ্যে এই জেলার অংশ: " + pct(d.share), "হিসাবের নিয়ম: বিভাগের পূর্বাভাস × জেলার অংশ"]; },
+      noData: "এই এলাকার ডেঙ্গুর কোনো হিসাব আমাদের কাছে নেই।",
+      subUpazila: function (d) { return "উপজেলা, " + d + " জেলা"; }, subDistrict: function (v) { return "জেলা, " + v + " বিভাগ"; },
+      noMatch: function (q) { return "“" + q + "” নামে কিছু পাওয়া যায়নি। ঢাকা বা সিলেটের মতো কোনো জেলার নাম লিখে দেখুন।"; },
+      ward: function (n, days) { return num(n) + " নম্বর ওয়ার্ড: " + (days != null ? "সপ্তাহে " + num(days) + " দিন মশার ওষুধ ছিটানোর কথা" : "ওষুধ ছিটানোর কোনো পরিকল্পনা প্রকাশ করা হয়নি"); },
+      zoneCatch: function (z, name, n) { return name + " অঞ্চল: গত সপ্তাহে " + num(n) + "টি এডিস মশা ধরা পড়েছে"; },
+      title: "ডেঙ্গু লিংক | আগামী সপ্তাহে কোথায় ডেঙ্গু বাড়তে পারে", views: "মেনু"
+    }
+  };
+  function lang() { return root.getAttribute("lang") === "bn" ? "bn" : "en"; }
+  function t(key) { return T[lang()][key]; }
+  function locale() { return lang() === "bn" ? "bn-BD" : "en-IN"; }
+  function num(n) { return Math.round(n).toLocaleString(locale()); }
+  function rate(x) { return (x < 10 ? Math.round(x * 10) / 10 : Math.round(x)).toLocaleString(locale()); }
+  function digits(s) { return lang() === "bn" ? s.replace(/\d/g, function (d) { return "০১২৩৪৫৬৭৮৯"[d]; }) : s; }
+  function pct(x) { return Math.round(x * 100).toLocaleString(locale()) + "%"; }
+  function about(n) { if (n < 10) return num(n); var m = Math.pow(10, String(Math.floor(n)).length - 2); return (Math.round(n / m) * m).toLocaleString(locale()); }
+  function distName(d) { return lang() === "bn" ? (D.bn.district[d] || d) : d; }
+  function divName(v) { return lang() === "bn" ? (D.bn.division[v] || v) : v; }
+  function upaName(id, en) { return lang() === "bn" ? (D.bn.upazila[id] || en) : en; }
+  function levelName(l) { return lang() === "bn" ? D.levelsBn[D.levels.indexOf(l)] : l; }
+  function token(name) { return getComputedStyle(root).getPropertyValue(name).trim(); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  /* Views menu: one list, shown as chips in the top bar on wide screens and as a bottom bar on phones */
+  document.getElementById("top-nav").innerHTML = document.getElementById("bottom-nav").innerHTML;
+  var toggle = document.getElementById("theme-toggle"), langBtn = document.getElementById("lang-toggle");
+  function isDark() { var th = root.getAttribute("data-theme"); return th ? th === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; }
+
+  /* Map: our own outline map, no background tiles */
+  var map = L.map("map", { zoomAnimation: !reduce, fadeAnimation: !reduce, markerZoomAnimation: !reduce, zoomControl: false, zoomSnap: 0.25 });
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+  map.attributionControl.setPrefix(false);
+  map.attributionControl.addAttribution('Boundaries: <a href="https://www.geoboundaries.org" target="_blank" rel="noopener">geoBoundaries</a> (CC BY 3.0 IGO)');
+
+  var shownWeek = null;
+  function levelIndex(name) {
+    if (shownWeek != null) { var past = D.history.levels[name]; return past ? past[shownWeek] : -1; }
+    var d = D.districts[name]; return d ? D.levels.indexOf(d.level) : -1;
+  }
+  function dayMonth(iso) { return new Date(iso).toLocaleDateString(lang() === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", timeZone: "Asia/Dhaka" }); }
+  function styleFor(f) {
+    var i = levelIndex(f.properties.shapeName);
+    return { color: token("--border-strong"), weight: 1, opacity: 0.6, fillOpacity: i < 0 ? 0.15 : 0.85, fillColor: i < 0 ? token("--muted") : token(FILL[i]) };
+  }
+  var byDistrict = {}, selected = null;
+  var districtsLayer = L.geoJSON(D.districtShapes, {
+    style: styleFor,
+    onEachFeature: function (f, layer) {
+      byDistrict[f.properties.shapeName] = [layer];
+      layer.on("click", function () { showPlace({ kind: "district", id: f.properties.shapeName }); });
+    }
+  }).addTo(map);
+  var countryLine = L.geoJSON({ type: "Feature", geometry: D.country }, { interactive: false, style: function () { return { color: token("--border-strong"), weight: 2, fill: false }; } }).addTo(map);
+  function bindTooltips() {
+    districtsLayer.eachLayer(function (layer) {
+      var name = layer.feature.properties.shapeName, i = levelIndex(name);
+      var text = i >= 0 ? t("tip")(distName(name), levelName(D.levels[i])) : distName(name) + ": " + t("noData");
+      if (layer.getTooltip()) layer.setTooltipContent(text); else layer.bindTooltip(text, { sticky: true });
+    });
+  }
+
+  var bd = countryLine.getBounds();
+  map.options.maxBoundsViscosity = 1.0;
+  map.fitBounds(bd);
+  function fitCountry() {
+    var stack = document.getElementById("top-stack");
+    var top = matchMedia("(max-width: 700px)").matches ? stack.offsetTop + stack.offsetHeight : 0;
+    map.setMaxBounds(null); map.setMinZoom(0);
+    map.fitBounds(bd, { paddingTopLeft: [16, 16 + top], paddingBottomRight: [16, 16], animate: false });
+    map.setMinZoom(map.getZoom() - 0.5);
+    map.setMaxBounds(map.getBounds().extend(bd.pad(0.2)));
+  }
+
+  /* Place-name labels: divisions when zoomed out, districts when zoomed in */
+  function centre(geom) {
+    var polys = geom.type === "MultiPolygon" ? geom.coordinates : [geom.coordinates];
+    var ring = polys.reduce(function (a, p) { return p[0].length > a.length ? p[0] : a; }, []);
+    var x = 0, y = 0; ring.forEach(function (c) { x += c[0]; y += c[1]; });
+    return [y / ring.length, x / ring.length];
+  }
+  var districtCentre = {};
+  D.districtShapes.features.forEach(function (f) { districtCentre[f.properties.shapeName] = centre(f.geometry); });
+  var divisionCentre = {};
+  Object.keys(D.districts).forEach(function (d) {
+    var v = D.districts[d].division, c = districtCentre[d]; if (!c) return;
+    var s = divisionCentre[v] = divisionCentre[v] || [0, 0, 0]; s[0] += c[0]; s[1] += c[1]; s[2]++;
+  });
+  var districtLabels = L.layerGroup(), divisionLabels = L.layerGroup();
+  function makeLabels() {
+    districtLabels.clearLayers(); divisionLabels.clearLayers();
+    Object.keys(districtCentre).forEach(function (d) {
+      L.tooltip({ permanent: true, direction: "center", className: "place-label", interactive: false })
+        .setLatLng(districtCentre[d]).setContent(distName(d)).addTo(districtLabels);
+    });
+    Object.keys(divisionCentre).forEach(function (v) {
+      var s = divisionCentre[v];
+      L.tooltip({ permanent: true, direction: "center", className: "place-label division", interactive: false })
+        .setLatLng([s[0] / s[2], s[1] / s[2]]).setContent(divName(v)).addTo(divisionLabels);
+    });
+  }
+  function showLabels() {
+    if (map.getZoom() >= 8.5) { map.removeLayer(divisionLabels); districtLabels.addTo(map); }
+    else { map.removeLayer(districtLabels); divisionLabels.addTo(map); }
+  }
+  map.on("zoomend", showLabels);
+
+  var lastWeek = D.mosquito && D.mosquito.weeks.length ? D.mosquito.weeks[D.mosquito.weeks.length - 1] : null;
+  var zoneMax = lastWeek ? Math.max.apply(null, Object.keys(lastWeek.adults).map(function (z) { return lastWeek.adults[z]; })) || 1 : 1;
+  // A selected district is brought to the front; wards and test centres get their own pane so they are never buried under it.
+  map.createPane("wards").style.zIndex = 450;
+  var RATING = { Low: "--f1", Moderate: "--f2", High: "--f4" };
+  function wardStyle(f) {
+    if (D.wardRisk) {
+      var r = D.wardRisk.wards[String(f.properties.ward)];
+      return { color: token("--border-strong"), weight: 1, fillColor: token(r ? RATING[r.level] : "--muted"), fillOpacity: r ? 0.95 : 0.2 };
+    }
+    var n = lastWeek ? lastWeek.adults[String(f.properties.zone)] : null;
+    return { color: token("--primary"), weight: 1.5, dashArray: "4 3", fillColor: token("--primary"),
+             fillOpacity: n == null ? 0 : 0.1 + 0.55 * n / zoneMax };
+  }
+  function dayNames(days) {
+    return days.map(function (i) { return new Date(2024, 0, 1 + i).toLocaleDateString(lang() === "bn" ? "bn-BD" : "en-GB", { weekday: "long" }); }).join(t("and"));
+  }
+  function sprayPopup(ward) {
+    var box = el("div"), groups = D.spray && D.spray[String(ward)];
+    box.appendChild(el("h4", null, t("sprayTitle")(num(ward))));
+    if (!groups) box.appendChild(el("p", null, t("sprayNone")));
+    else if (D.sprayChecked) box.appendChild(el("p", "muted small", t("listChecked")(dayMonth(D.sprayChecked))));
+    (groups || []).forEach(function (g) {
+      var p = el("p"); p.appendChild(el("strong", null, dayNames(g.days) + ": "));
+      p.appendChild(document.createTextNode(g.areas.map(function (a) { return lang() === "bn" && a[1] ? a[1] : a[0]; }).join(", "))); box.appendChild(p);
+    });
+    return box;
+  }
+  var wards = D.wards && L.geoJSON(D.wards, { pane: "wards", style: wardStyle, onEachFeature: function (f, layer) {
+    layer.bindTooltip("", { sticky: true });
+    layer.bindPopup(function () { return sprayPopup(f.properties.ward); }, { maxWidth: 280 });
+    layer.on("popupopen", function () { layer.closeTooltip(); });
+  } });
+  function wardTooltips() {
+    if (wards) wards.eachLayer(function (l) {
+      var p = l.feature.properties, z = D.zones[String(p.zone)], caught = lastWeek ? lastWeek.adults[String(p.zone)] : null;
+      var r = D.wardRisk && D.wardRisk.wards[String(p.ward)];
+      l.setTooltipContent(t("ward")(p.ward, D.wardSpray[String(p.ward)]) + (r ? "<br>" + t("wardRating")(t("rating")[r.level], num(r.patients)) : "")
+        + (caught != null ? "<br>" + t("zoneCatch")(p.zone, z ? z[lang() === "bn" ? 1 : 0] : "", caught) : ""));
+    });
+  }
+  var wardsToggle = document.getElementById("wards-toggle");
+  if (!wards) wardsToggle.closest("label").hidden = true;
+  var centreDots = L.layerGroup((D.testCentres || []).filter(function (c) { return !c.approx; }).map(function (c) {
+    return L.circleMarker([c.lat, c.lon], { pane: "wards", radius: 4, weight: 1.5, color: "#0F172A", fillColor: "#FFFFFF", fillOpacity: 1 }).bindTooltip("");
+  }));
+  function centreTooltips() {
+    var shown = (D.testCentres || []).filter(function (c) { return !c.approx; });
+    centreDots.getLayers().forEach(function (dot, i) { dot.setTooltipContent(el("span", null, t("centreTip")(lang() === "bn" && shown[i].bn ? shown[i].bn : shown[i].name, t("centreKinds")[shown[i].kind]))); });
+  }
+  wardsToggle.addEventListener("change", function () {
+    [wards, centreDots].forEach(function (layer) { if (wardsToggle.checked) layer.addTo(map); else map.removeLayer(layer); });
+    document.getElementById("ward-key").hidden = !(wardsToggle.checked && D.wardRisk);
+    drawWardKey();
+  });
+
+  function drawWardKey() { if (D.wardRisk) document.getElementById("ward-key-date").textContent = t("ratedOn")(dayMonth(D.wardRisk.date)); }
+
+  /* Week slider: replay the last weeks on the same colour scale; the last stop is next week's forecast */
+  var weekInput = document.getElementById("week"), weeks = D.history ? D.history.weeks : [];
+  function drawWeek() {
+    var past = shownWeek != null ? dayMonth(weeks[shownWeek]) : null;
+    document.getElementById("legend-title").textContent = past ? t("legendPast")(past) : t("legendNext");
+    weekInput.setAttribute("aria-valuetext", t("weekText")(past));
+    document.getElementById("week-note").hidden = !past;
+    document.getElementById("week-hint").textContent = past ? t("weekText")(past) : t("weekHint");
+  }
+  if (weeks.length) {
+    document.getElementById("week-row").hidden = false;
+    weekInput.max = weeks.length; weekInput.value = weeks.length;
+    weekInput.addEventListener("input", function () {
+      shownWeek = Number(weekInput.value) === weeks.length ? null : Number(weekInput.value);
+      districtsLayer.setStyle(styleFor); bindTooltips(); drawWeek();
+      if (selected) selected.forEach(function (l) { l.setStyle({ weight: 3, color: token("--fg"), opacity: 1 }); });
+    });
+  }
+
+  var legend = document.getElementById("legend-items");
+  function drawLegend() {
+    legend.textContent = "";
+    D.levels.slice().reverse().forEach(function (name, j) {
+      var li = el("li"), sw = el("i"); sw.style.background = token(FILL[D.levels.length - 1 - j]);
+      li.appendChild(sw); li.appendChild(el("span", null, levelName(name))); legend.appendChild(li);
+    });
+  }
+
+  /* Place details */
+  var place = document.getElementById("place"), body = document.getElementById("place-body"), current = null;
+  var ICON = {
+    up: '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>', down: '<path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/>', flat: '<path d="M4 12h16"/>',
+    bed: '<path d="M3 20V8M3 16h18v4M21 16v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="12" r="2"/>',
+    rain: '<path d="M20 16.6A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><path d="M8 19v2M12 17v2M16 19v2M8 14v1M16 14v1M12 21v1"/>',
+    heart: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/>'
+  };
+  function rainToday(division) {
+    var fresh = D.weather && Date.now() - Date.parse(D.weather.date + "T09:00:00+06:00") < 24 * 3600 * 1000;
+    return fresh ? D.weather.divisions[division] : null;
+  }
+  function warningsFor(division) {
+    return (D.warnings || []).filter(function (w) { return w.divisions.indexOf(division) >= 0 && Date.parse(w.expires) > Date.now(); });
+  }
+  function warningNote(w) {
+    var words = w[lang()], box = el("div", "note warn"), link = el("a", null, t("warnLink"));
+    box.appendChild(el("strong", null, t("warnTitle") + ": " + words.headline));
+    box.appendChild(el("p", null, words.instruction));
+    var until = new Date(w.expires).toLocaleString(lang() === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "Asia/Dhaka" });
+    var p = el("p", "muted", t("warnUntil")(until) + " "); box.appendChild(p);
+    if (w.web) { link.href = w.web; link.target = "_blank"; link.rel = "noopener"; p.appendChild(link); }
+    return box;
+  }
+  function fact(paths, text, cls) {
+    var li = el("li", cls), ico = el("span", "ico");
+    ico.innerHTML = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + paths + "</svg>";
+    li.appendChild(ico); li.appendChild(el("span", null, text)); return li;
+  }
+  function highlight(layers) {
+    if (selected) selected.forEach(function (l) { districtsLayer.resetStyle(l); });
+    selected = layers;
+    layers.forEach(function (l) { l.setStyle({ weight: 3, color: token("--fg"), opacity: 1 }); l.bringToFront(); });
+    var phone = matchMedia("(max-width: 1099px)").matches;
+    map.fitBounds(L.featureGroup(layers).getBounds(), {
+      animate: !reduce, maxZoom: 10,
+      paddingTopLeft: phone ? [24, 90] : [place.offsetWidth + 36, 90],
+      paddingBottomRight: phone ? [24, place.offsetHeight + 24] : [24, 24]
+    });
+  }
+  function showPlace(p, keepView) {
+    current = p;
+    var districtName = p.kind === "upazila" ? p.district : p.id;
+    var layers = byDistrict[districtName] || [];
+    var title = t("district")(distName(districtName));
+    var d = D.districts[districtName];
+    body.textContent = "";
+    var head = el("div", "row"); head.appendChild(el("h2", null, title));
+    if (d) head.appendChild(el("span", "badge lv" + D.levels.indexOf(d.level), t("risk")(levelName(d.level))));
+    body.appendChild(head);
+    if (p.kind === "upazila") body.appendChild(el("p", null, t("inDistrict")(upaName(p.id, p.en), distName(districtName))));
+    if (d) body.appendChild(el("p", "muted", t("division")(divName(d.division))));
+    if (d) {
+      warningsFor(d.division).forEach(function (w) { body.appendChild(warningNote(w)); });
+      body.appendChild(el("p", "lead-big", t("expected")(distName(districtName), about(d.next7))));
+      var facts = el("ul", "facts");
+      facts.appendChild(fact(d.change > 0.05 ? ICON.up : d.change < -0.05 ? ICON.down : ICON.flat, t("trend")(divName(d.division), d.change),
+        d.change > 0.05 ? "up" : d.change < -0.05 ? "down" : ""));
+      if (d.in_hospital != null) {
+        facts.appendChild(fact(ICON.bed, t("inHospital")(num(d.in_hospital))));
+        facts.appendChild(fact(ICON.heart, t("deaths")(num(d.deaths_year))));
+      }
+      var rain = rainToday(d.division);
+      if (rain) facts.appendChild(fact(ICON.rain, t("rainLine")(divName(d.division), t("coverage")[rain.coverage], rain.heavy, dayMonth(D.weather.date))));
+      body.appendChild(facts);
+      var actions = el("div", "actions");
+      var call = el("a", "btn primary", t("call")); call.href = "tel:16263"; actions.appendChild(call);
+      var help = el("a", "btn", D.hospitals ? t("nearestBtn") : t("help")); help.href = "#help"; actions.appendChild(help);
+      if (D.hospitals) help.addEventListener("click", function () { toFinder = true; });
+      body.appendChild(actions);
+      var det = el("details"); det.appendChild(el("summary", null, t("details")));
+      var dl = el("ul"); [t("perLakh")(rate(d.rate))].concat(t("detailLines")(d, divName(d.division))).forEach(function (a) { dl.appendChild(el("li", null, a)); });
+      if (districtName === "Dhaka" && D.city && D.city.DNCC && D.city.DSCC) dl.appendChild(el("li", null, t("cityLine")(D.city)));
+      det.appendChild(dl); body.appendChild(det);
+      chosen = districtName;
+      try { localStorage.setItem("dl-place", districtName); } catch (e) {}
+      answerMsg.dataset.busy = ""; if (finderFrom) finderFrom.dataset.busy = "";
+    } else body.appendChild(el("p", null, t("noData")));
+    place.hidden = false;
+    document.body.classList.add("place-open");
+    drawAnswer();
+    if (layers.length && !keepView) highlight(layers);
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !place.hidden && document.activeElement !== input) place.querySelector(".close").click();
+  });
+  place.querySelector(".close").addEventListener("click", function () {
+    place.hidden = true; current = null;
+    document.body.classList.remove("place-open");
+    if (selected) selected.forEach(function (l) { districtsLayer.resetStyle(l); });
+    selected = null; document.getElementById("search").focus();
+    drawAnswer();
+  });
+
+  /* Answer card: what a first-time visitor sees before searching */
+  var chosen = null;
+  function remembered() {
+    if (chosen) return chosen;
+    try { var n = localStorage.getItem("dl-place"); return n && D.districts[n] ? n : null; } catch (e) { return null; }
+  }
+  var answerMsg = document.getElementById("answer-msg");
+  function drawAnswer() {
+    var name = remembered(), d = name && D.districts[name], badge = document.getElementById("answer-badge");
+    document.getElementById("answer-title").textContent = d ? t("district")(distName(name)) : t("pick");
+    badge.className = d ? "badge lv" + D.levels.indexOf(d.level) : ""; badge.textContent = d ? t("risk")(levelName(d.level)) : "";
+    var line = document.getElementById("answer-line");
+    line.textContent = d ? t("answerLine")(d.change, about(d.next7)) : t("pickLine"); line.className = d ? "" : "intro";
+    document.getElementById("answer-open").textContent = d ? t("seeDetails") : t("searchBtn");
+    document.getElementById("locate-label").textContent = t("locate");
+    if (!answerMsg.dataset.busy) answerMsg.textContent = d ? "" : t("locPrivacy");
+    var warned = d ? warningsFor(d.division) : [], warnLine = document.getElementById("answer-warning");
+    warnLine.hidden = !warned.length; warnLine.textContent = warned.length ? t("warnTitle") + ": " + warned[0][lang()].headline : "";
+  }
+  document.getElementById("answer-open").addEventListener("click", function () {
+    var name = remembered();
+    if (name) showPlace({ kind: "district", id: name }); else input.focus();
+  });
+  function inRing(x, y, ring) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var a = ring[i], b = ring[j];
+      if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+    }
+    return inside;
+  }
+  function districtAt(lon, lat) {
+    var hit = null;
+    D.districtShapes.features.some(function (f) {
+      var polys = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
+      var inside = polys.some(function (p) { return inRing(lon, lat, p[0]) && !p.slice(1).some(function (hole) { return inRing(lon, lat, hole); }); });
+      if (inside) hit = f.properties.shapeName;
+      return inside;
+    });
+    return hit;
+  }
+  var here = null, hereDistrict = null;
+  function say(text) { answerMsg.dataset.busy = text ? "1" : ""; answerMsg.textContent = text; if (!text) drawAnswer(); }
+  function locateMe(tell, found) {
+    if (!navigator.geolocation) { tell(t("locDenied")); return; }
+    tell(t("locWait"));
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var name = districtAt(pos.coords.longitude, pos.coords.latitude);
+      if (!name) { tell(t("locOutside")); return; }
+      here = [pos.coords.latitude, pos.coords.longitude]; hereDistrict = chosen = name;
+      try { localStorage.setItem("dl-place", name); } catch (e) {}
+      found(name);
+    }, function () { tell(t("locDenied")); }, { timeout: 10000, maximumAge: 600000 });
+  }
+  document.getElementById("locate").addEventListener("click", function () {
+    locateMe(say, function (name) { say(""); showPlace({ kind: "district", id: name }); });
+  });
+
+  /* Home checklist: ticks live on this device, clear after a week, and clear early when rain is forecast */
+  var homeBoxes = Array.prototype.slice.call(document.querySelectorAll("#home-check input"));
+  function dhakaDate() { return new Date(Date.now() + 6 * 3600 * 1000).toISOString().slice(0, 10); }
+  function homeState() { try { return JSON.parse(localStorage.getItem("dl-home")) || {}; } catch (e) { return {}; } }
+  function drawHome() {
+    var s = homeState(), name = remembered(), division = name && D.districts[name].division, rain = division && rainToday(division);
+    var stale = !s.on || Date.now() - Date.parse(s.on) > 7 * 864e5 || (rain && s.on < D.weather.date);
+    var done = stale ? [] : s.done || [];
+    homeBoxes.forEach(function (b) { b.checked = done.indexOf(b.getAttribute("data-item")) >= 0; });
+    var note = document.getElementById("home-rain"); note.hidden = !rain; note.textContent = rain ? t("homeRain")(divName(division)) : "";
+    document.getElementById("home-done").textContent = done.length === homeBoxes.length ? t("homeDone") : "";
+  }
+  homeBoxes.forEach(function (b) {
+    b.addEventListener("change", function () {
+      var done = homeBoxes.filter(function (x) { return x.checked; }).map(function (x) { return x.getAttribute("data-item"); });
+      try { localStorage.setItem("dl-home", JSON.stringify({ on: dhakaDate(), done: done })); } catch (e) {}
+      drawHome();
+    });
+  });
+
+  /* Nearest hospital: worked out here, from the list already on the page */
+  var toFinder = false, finderFrom = document.getElementById("finder-from");
+  function km(a, b) {
+    var r = Math.PI / 180, dLat = (b[0] - a[0]) * r, dLon = (b[1] - a[1]) * r;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 12742 * Math.asin(Math.sqrt(h));
+  }
+  function nearest(list, at, count) {
+    return list.map(function (x) { return [km(at, [x.lat, x.lon]), x]; }).sort(function (a, b) { return a[0] - b[0]; }).slice(0, count);
+  }
+  function mapsLink(query) { var a = el("a", "link", t("maps")); a.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query); a.target = "_blank"; a.rel = "noopener"; return a; }
+  function placeCard(x, kind, chips, query, dist) {
+    var li = el("li", "card"); li.appendChild(el("h4", null, lang() === "bn" && x.bn ? x.bn : x.name));
+    li.appendChild(el("p", "muted", kind + (dist != null ? " · " + t("away")(num(Math.max(dist, 1))) : "")));
+    if (x.phone) { var p = el("p", "call"), a = el("a", null, digits(x.phone)); a.href = "tel:" + x.phone; p.appendChild(a); li.appendChild(p); }
+    if (chips.length) { var c = el("div", "chips"); chips.forEach(function (ch) { c.appendChild(el("span", "chip" + (ch[1] ? " " + ch[1] : ""), ch[0])); }); li.appendChild(c); }
+    li.appendChild(mapsLink(query)); return li;
+  }
+  function drawFinder() {
+    if (!finderFrom) return;
+    document.getElementById("finder-locate").textContent = t("locate");
+    var list = document.getElementById("finder-list"), block = document.getElementById("centres-block"), name = remembered();
+    var at = here && hereDistrict === name ? here : name ? districtCentre[name] : null;
+    list.textContent = ""; if (block) block.hidden = true; document.getElementById("also-block").hidden = true;
+    if (!finderFrom.dataset.busy) finderFrom.textContent = !at ? t("fromNowhere") : at === here ? t("fromYou") : t("fromDistrict")(distName(name));
+    if (!at) return;
+    function hospitalCard(h, dist) {
+      var chips = [];
+      if (h.emergency) chips.push([t("emergency")]); if (h.ambulance) chips.push([t("ambulance")]); if (h.beds) chips.push([t("beds")(num(h.beds))]);
+      return placeCard(h, t("kinds")[h.kind], chips, h.lat != null ? h.lat + "," + h.lon : h.name + ", " + h.district, dist);
+    }
+    nearest(D.hospitals.filter(function (h) { return h.lat != null; }), at, 3).forEach(function (r) { list.appendChild(hospitalCard(r[1], r[0])); });
+    var pinless = D.hospitals.filter(function (h) { return h.lat == null && h.district === name; }), also = document.getElementById("also-list");
+    also.textContent = ""; document.getElementById("also-block").hidden = !pinless.length;
+    document.getElementById("also-note").textContent = t("alsoIn")(distName(name));
+    pinless.forEach(function (h) { also.appendChild(hospitalCard(h, null)); });
+    if (!block || nearest(D.testCentres, at, 1)[0][0] > 15) return;
+    var centreList = document.getElementById("centre-list"); centreList.textContent = ""; block.hidden = false;
+    function isFree(c) { return c.kind === "free"; }
+    nearest(D.testCentres.filter(isFree), at, 2).concat(nearest(D.testCentres.filter(function (c) { return !isFree(c); }), at, 3)).forEach(function (r) {
+      var c = r[1], chips = isFree(c) ? [[t("centreKinds").free, "free"]] : [];
+      if (c.ward) chips.push([t("inWard")(num(c.ward))]);
+      centreList.appendChild(placeCard(c, t("centreKinds")[c.kind], chips, c.approx ? c.name + ", Dhaka" : c.lat + "," + c.lon, c.approx ? null : r[0]));
+    });
+  }
+  if (finderFrom) document.getElementById("finder-locate").addEventListener("click", function () {
+    locateMe(function (text) { finderFrom.dataset.busy = "1"; finderFrom.textContent = text; }, function () { finderFrom.dataset.busy = ""; drawAnswer(); drawFinder(); });
+  });
+
+  /* Menu / views */
+  var views = ["map", "risk", "control", "help", "about"], fitted = false;
+  function route(focus) {
+    var v = (location.hash || "#map").slice(1).replace(/^view-/, "");
+    if (views.indexOf(v) < 0) v = "map";
+    views.forEach(function (name) {
+      document.getElementById("view-" + name).hidden = name !== v;
+      document.querySelectorAll('nav.views a[href="#' + name + '"]').forEach(function (a) { a.setAttribute("aria-current", name === v ? "page" : "false"); });
+    });
+    document.body.classList.toggle("on-map", v === "map");
+    root.style.setProperty("--bar-h", document.getElementById("appbar").offsetHeight + "px");
+    map.invalidateSize();
+    if (v === "map" && !fitted) { fitCountry(); fitted = true; }
+    if (v === "help") { drawFinder(); drawHome(); }
+    if (focus) {
+      var h = document.querySelector(v === "help" && toFinder ? "#finder-title" : "#view-" + v + " h2");
+      if (h) { h.focus({ preventScroll: v === "map" }); if (toFinder) h.scrollIntoView({ block: "start" }); }
+    }
+    toFinder = false;
+  }
+  addEventListener("hashchange", function () { route(true); });
+  var showDistricts = document.getElementById("show-districts"), showDivisions = document.getElementById("show-divisions");
+  function showBy(divisions) {
+    showDistricts.setAttribute("aria-pressed", String(!divisions)); showDivisions.setAttribute("aria-pressed", String(divisions));
+    document.getElementById("district-list").hidden = divisions; document.getElementById("division-list").hidden = !divisions;
+  }
+  showDistricts.addEventListener("click", function () { showBy(false); });
+  showDivisions.addEventListener("click", function () { showBy(true); });
+  addEventListener("resize", function () { route(false); });
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("[data-place]"); if (!a) return;
+    var parts = a.getAttribute("data-place").split(":");
+    setTimeout(function () { showPlace({ kind: parts[0], id: parts.slice(1).join(":") }); }, 0);
+  });
+
+  /* Search (ARIA 1.2 combobox), matches English and Bangla names */
+  var input = document.getElementById("search"), list = document.getElementById("search-results");
+  var entries = D.upazilaIndex.map(function (u) {
+    return { kind: "upazila", id: u.id, en: u.name, bn: u.bn, district: u.district };
+  }).concat(Object.keys(D.districts).map(function (n) { return { kind: "district", id: n, en: n, bn: D.bn.district[n] || "", division: D.districts[n].division }; }));
+  function label(e) { return lang() === "bn" && e.bn ? e.bn : e.en; }
+  function sub(e) { return e.kind === "upazila" ? t("subUpazila")(distName(e.district)) : t("subDistrict")(divName(e.division)); }
+  var matches = [], active = -1;
+  function close() { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; }
+  function setActive(i) {
+    active = i;
+    Array.prototype.forEach.call(list.children, function (li, j) { li.setAttribute("aria-selected", String(j === i)); });
+    if (i >= 0) { input.setAttribute("aria-activedescendant", "opt-" + i); list.children[i].scrollIntoView({ block: "nearest" }); }
+  }
+  function choose(i) {
+    var m = matches[i]; if (!m) return;
+    input.value = label(m); close();
+    if (location.hash !== "#map" && location.hash !== "") location.hash = "#map";
+    setTimeout(function () { showPlace(m); }, 0);
+  }
+  input.addEventListener("input", function () {
+    var q = input.value.trim().toLowerCase();
+    list.textContent = "";
+    if (!q) { close(); return; }
+    function at(e) {
+      var exact = e.en.toLowerCase() === q || e.bn === q;
+      var a = e.en.toLowerCase().indexOf(q), b = e.bn ? e.bn.indexOf(q) : -1;
+      var rank = exact ? 0 : a === 0 || b === 0 ? 1 : a > 0 || b > 0 ? 2 : -1;
+      return rank < 0 ? -1 : rank * 2 + (e.kind === "district" ? 0 : 1);
+    }
+    matches = entries.map(function (e) { return [at(e), e]; }).filter(function (p) { return p[0] >= 0; })
+      .sort(function (x, y) { return x[0] - y[0]; }).map(function (p) { return p[1]; }).slice(0, 8);
+    if (!matches.length) list.appendChild(el("li", "empty", t("noMatch")(input.value.trim())));
+    matches.forEach(function (m, i) {
+      var li = el("li"); li.id = "opt-" + i; li.setAttribute("role", "option"); li.setAttribute("aria-selected", "false");
+      li.appendChild(el("span", null, label(m))); li.appendChild(el("span", "sub", sub(m)));
+      li.addEventListener("mousedown", function (e) { e.preventDefault(); choose(i); });
+      list.appendChild(li);
+    });
+    list.hidden = false; input.setAttribute("aria-expanded", "true"); active = -1;
+  });
+  input.addEventListener("keydown", function (e) {
+    if (list.hidden) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(Math.min(active + 1, matches.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(Math.max(active - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); choose(active < 0 ? 0 : active); }
+    else if (e.key === "Escape") { close(); }
+  });
+  input.addEventListener("blur", function () { setTimeout(close, 100); });
+
+  /* Language + theme */
+  function applyLanguage() {
+    document.title = t("title");
+    input.placeholder = matchMedia("(max-width: 480px)").matches ? t("searchShort") : t("search");
+    document.getElementById("search-label").textContent = t("search");
+    document.getElementById("search-help").textContent = t("searchHelp");
+    document.getElementById("map").setAttribute("aria-label", t("map"));
+    toggle.setAttribute("aria-label", t("dark"));
+    place.querySelector(".close").setAttribute("aria-label", t("close"));
+    document.querySelectorAll("nav.views").forEach(function (n) { n.setAttribute("aria-label", t("views")); });
+    langBtn.textContent = t("langBtn");
+    langBtn.setAttribute("aria-label", t("langLabel"));
+    langBtn.setAttribute("lang", lang() === "bn" ? "en" : "bn");
+    bindTooltips(); wardTooltips(); centreTooltips(); makeLabels(); showLabels(); drawLegend(); drawWeek(); drawWardKey(); drawAnswer(); drawFinder(); drawHome();
+    if (current) showPlace(current, true);
+  }
+  langBtn.addEventListener("click", function () {
+    var next = lang() === "bn" ? "en" : "bn";
+    root.setAttribute("lang", next);
+    try { localStorage.setItem("dl-lang", next); } catch (e) {}
+    answerMsg.dataset.busy = ""; if (finderFrom) finderFrom.dataset.busy = "";
+    applyLanguage();
+  });
+  toggle.setAttribute("aria-pressed", String(isDark()));
+  toggle.addEventListener("click", function () {
+    var next = isDark() ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("dl-theme", next); } catch (e) {}
+    toggle.setAttribute("aria-pressed", String(isDark()));
+    districtsLayer.setStyle(styleFor); countryLine.setStyle({ color: token("--border-strong") });
+    drawLegend(); if (wards) wards.setStyle(wardStyle);
+    if (selected) selected.forEach(function (l) { l.setStyle({ weight: 3, color: token("--fg"), opacity: 1 }); });
+  });
+
+  applyLanguage();
+  route(false);
+})();
+</script>
+</body>
+</html>
