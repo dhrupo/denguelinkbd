@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "mkdir -p public && curl -fsSL --retry 3 https://dhrupo.github.io/denguelinkbd/ -o public/index.html && grep -q 'id=\"data\"' public/index.html",
+  "outputDirectory": "public"
+}

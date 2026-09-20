@@ -93,6 +93,7 @@ A GitHub Actions job (`.github/workflows/pages.yml`) builds the page once a day 
 - If DGHS cannot be reached, the job stops and the last good page stays online.
 - A page that has missed an update says so: once its figures are more than 30 hours old, a notice shows the date they were last updated.
 - Each build carries forward the daily reports and mosquito surveys that earlier builds collected, because those drop off their source pages.
+- Vercel can serve a copy too. It does not run the app (the app keeps a database and history on disk, which Vercel does not allow). `vercel.json` simply makes each Vercel build download the finished page from GitHub Pages. To keep that copy fresh, create a Deploy Hook in the Vercel project and save its address as the repository secret `VERCEL_DEPLOY_HOOK`; the daily job then calls it after publishing.
 - GitHub pauses scheduled jobs in a repository that has had no activity for 60 days. Any push, or pressing *Run workflow*, starts them again.
 
 ## Tests

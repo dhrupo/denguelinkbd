@@ -19,3 +19,4 @@ tests/fixtures/dncc_plan_zone4.pdf
 .DS_Store
 .idea/
 .vscode/
+.vercel/

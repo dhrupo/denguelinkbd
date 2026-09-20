@@ -27,6 +27,7 @@ jobs:
       TZ: Asia/Dhaka
       # Nobody is waiting on this build, so slow government servers get three minutes instead of thirty seconds.
       DENGUE_LINK_SOURCE_BUDGET: "180"
+      VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,3 +68,8 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      # Vercel serves a copy of the finished page. It only rebuilds when told to, so the daily job tells it, if a hook has been set.
+      - name: Tell Vercel there is a new page
+        if: env.VERCEL_DEPLOY_HOOK != ''
+        run: curl -fsS -X POST "$VERCEL_DEPLOY_HOOK"
