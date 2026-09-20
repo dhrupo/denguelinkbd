@@ -9,7 +9,7 @@ import pypdf
 import requests
 
 from dengue_link import db
-from dengue_link.fetch import HEADERS, get_pdf
+from dengue_link.fetch import DNCC_CA, HEADERS, get_pdf
 
 LIST_URL = "https://dncc.gov.bd/pages/reports?filters=%7B%22reports_type%22%3A%2269a6621af681a7e27286ba8c%22%7D"
 ZONES = range(1, 6)
@@ -76,7 +76,7 @@ def _download(url):
 
 def fetch(conn):
     done = db.seen(conn, "ju_dncc")
-    todo = [u for u in report_urls(requests.get(LIST_URL, headers=HEADERS, timeout=(5, 20)).text) if u not in done]
+    todo = [u for u in report_urls(requests.get(LIST_URL, headers=HEADERS, timeout=(5, 20), verify=DNCC_CA).text) if u not in done]
     stored = 0
     with ThreadPoolExecutor(5) as pool:
         for url, body in pool.map(_download, todo):

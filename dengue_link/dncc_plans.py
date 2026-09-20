@@ -8,7 +8,7 @@ import pypdf
 import requests
 
 from dengue_link import db
-from dengue_link.fetch import get_pdf
+from dengue_link.fetch import DNCC_CA, get_pdf
 
 # Plans are typed in SutonnyMJ (Bijoy ASCII), so Bangla words arrive as Latin byte soup:
 # "IqvW© bs-9" is "ওয়ার্ড নং-৯", "kwbevi" is "শনিবার".
@@ -45,7 +45,7 @@ def _download(url):
 
 
 def fetch(conn):
-    html = requests.get("https://dncc.gov.bd/pages/mosquito-kill-plans", timeout=(5, 20)).text
+    html = requests.get("https://dncc.gov.bd/pages/mosquito-kill-plans", timeout=(5, 20), verify=DNCC_CA).text
     stored = 0
     with ThreadPoolExecutor(5) as pool:
         for url, body in pool.map(_download, plan_pdf_urls(html)):

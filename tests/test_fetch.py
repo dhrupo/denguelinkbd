@@ -102,3 +102,23 @@ def test_an_empty_download_is_never_saved_as_the_weekly_list(tmp_path):
     with pytest.raises(ValueError):
         weekly(tmp_path / "list.json", date(2026, 9, 20), lambda: [])
     assert not (tmp_path / "list.json").exists()
+
+
+def test_dnccs_missing_certificate_link_is_supplied_rather_than_checks_being_turned_off(monkeypatch, tmp_path):
+    from pathlib import Path
+
+    from dengue_link import db, dncc_plans, ju_dncc
+    from dengue_link.fetch import DNCC_CA
+
+    pem = Path(DNCC_CA).read_text()
+    assert pem.count("BEGIN CERTIFICATE") == 1
+    asked = []
+
+    class Reply:
+        text = ""
+
+    for module in (dncc_plans, ju_dncc):
+        monkeypatch.setattr(module.requests, "get", lambda url, **k: asked.append((url, k.get("verify"))) or Reply())
+        module.fetch(db.connect(tmp_path / f"{module.__name__}.db"))
+    assert [verify for _, verify in asked] == [DNCC_CA, DNCC_CA]
+    assert all(url.startswith("https://dncc.gov.bd/") for url, _ in asked)

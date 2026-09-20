@@ -1,11 +1,15 @@
 import json
 from datetime import date
+from pathlib import Path
 
 import requests
 import truststore
 
 # dncc.gov.bd serves an incomplete certificate chain; the OS trust store fetches the missing intermediate, certifi does not.
 truststore.inject_into_ssl()
+# That only holds on macOS and Windows. Linux fetches nothing, so requests to dncc.gov.bd are given the missing link themselves:
+# Sectigo's public DV R36 intermediate (valid to 2036). The chain is still checked up to a trusted root.
+DNCC_CA = str(Path(__file__).parent / "certs" / "sectigo-dv-r36.pem")
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (dengue-link research scraper)"}
 
