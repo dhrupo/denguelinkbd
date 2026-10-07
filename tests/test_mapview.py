@@ -11,6 +11,16 @@ from dengue_link.mapview import render
 RAW = Path(__file__).parent.parent / "data" / "raw"
 
 
+def _year(peak_week, week_38):
+    weeks = [100.0] * 52
+    weeks[peak_week], weeks[38] = 2000.0, week_38
+    return weeks
+
+
+SEASON = {"2022": _year(44, 300.0), "2023": _year(34, 900.0), "2024": _year(41, 400.0), "2025": _year(40, 450.0),
+          "2026": [120.0] * 38 + [500.0] + [None] * 13}
+
+
 @pytest.fixture(scope="module")
 def page(tmp_path_factory):
     upazilas = json.loads((RAW / "upazilas.geojson").read_text())
@@ -37,7 +47,7 @@ def page(tmp_path_factory):
         districts=districts,
         divisions=divisions,
         novelty={"week": "2026-09-10", "score": 0.81},
-        backtest={"model_mae": 120.0, "baseline_mae": 150.0, "n": 40},
+        backtest={"model_mae": 120.0, "baseline_mae": 150.0, "n": 40, "band": (-0.8, 0.7), "band_held": 0.87, "band_checked": 184},
         wards=None,
         country=json.loads((RAW / "country.geojson").read_text()),
         district_shapes=json.loads((RAW / "districts.geojson").read_text()),
@@ -69,6 +79,7 @@ def page(tmp_path_factory):
         ward_risk={"date": "2026-09-13", "wards": {"9": {"level": "Moderate", "patients": 40}, "17": {"level": "High", "patients": 167},
                                                     "1": {"level": "Low", "patients": 18}}},
         spray={"checked": "2026-09-18", "items": {"9": [{"days": [1, 5], "areas": [["Mirpur 1", "মিরপুর ১"]]}]}},
+        season=SEASON,
         past_weeks=pd.DataFrame({"Dhaka": [100.0, 3000.0], "Chittagong": [50.0, 400.0]}, index=pd.to_datetime(["2026-09-03", "2026-09-10"])),
         test_centres={"checked": "2026-09-18", "items": [
             {"name": "Nagar Shastho Kendra-5, Kuril", "bn": "নগর স্বাস্থ্য কেন্দ্র-৫, কুড়িল", "kind": "free", "ward": 17, "lat": 23.82, "lon": 90.42, "approx": True}]},
@@ -171,7 +182,8 @@ def test_place_panel_is_one_line_three_facts_and_a_call_button(page):
     assert 'el("ul", "facts")' in script
     assert '"tel:16263"' in script
     assert script.index("perLakh")  # still available, but under More detail
-    assert script.index('t("perLakh")') > script.index('el("summary"')
+    panel = script[script.index("function showPlace("):]
+    assert panel.index('t("perLakh")') > panel.index('el("summary"')
 
 
 def test_get_help_page_has_tap_to_call_numbers_with_official_sources(page):
@@ -584,3 +596,41 @@ def test_a_page_that_has_gone_a_day_without_an_update_says_so(page):
 def test_text_on_the_accent_colour_is_readable_in_both_themes(page):
     assert "--accent:#B45309; --on-accent:#FFFFFF;" in page and page.count("--accent:#FBBF24; --on-accent:#111827;") == 2
     assert "color:#111827" not in page[page.index(".banner"):page.index(".banner") + 400]
+
+
+def test_about_says_how_often_the_likely_range_held(page):
+    about = _view(page, "about")
+    assert "184 past division forecasts" in about and "87 out of every 100" in about
+    assert "District numbers are less certain than that" in about
+    assert "১০০টির মধ্যে ৮৭টিতে" in about and "জেলার হিসাব এর চেয়ে কম নিশ্চিত" in about
+
+
+
+def test_hotspots_compares_this_year_with_past_years(page):
+    risk = _view(page, "risk")
+    assert 'id="season"' in risk and "<svg" in risk[risk.index('id="season"'):]
+    assert "In the last 4 years, dengue peaked between August and November." in risk
+    assert "This week, more people were admitted than in the same week of 3 of the last 4 years." in risk
+    assert "গত ৪ বছরে ডেঙ্গু সবচেয়ে বেশি ছড়িয়েছে আগস্ট থেকে নভেম্বর মাসের মধ্যে।" in risk
+    assert "এ সপ্তাহে ভর্তি রোগী গত ৪ বছরের মধ্যে ৩ বছরের একই সপ্তাহের চেয়ে বেশি।" in risk
+    season = risk[risk.index('id="season"'):]
+    assert season[: season.index("</section>")].count('<th scope="row">') == 12
+
+
+def test_get_help_lists_dhaka_norths_dengue_control_room(page):
+    help_view = _view(page, "help")
+    for n in ("01716063425", "01773393276", "01715238754"):
+        assert f'href="tel:{n}"' in help_view
+    # Written exactly as on dncc.gov.bd's own notice.
+    assert all(n in help_view for n in ("০১৭১৬-০৬৩৪২৫", "০১৭৭৩-৩৯৩২৭৬", "০১৭১৫-২৩৮৭৫৪", "01773-393276")) and "Dhaka North" in help_view
+
+
+def test_a_past_year_with_missing_weeks_does_not_break_the_season_chart():
+    from dengue_link.mapview import _season_view
+
+    short = _year(20, 300.0)[:30] + [None] * 22
+    view = _season_view({"2024": short, "2025": _year(40, 450.0), "2026": [120.0] * 38 + [500.0] + [None] * 13})
+    # 2024 has no figure for this week, so only 2025 is compared.
+    assert "This week, more people were admitted than in the same week of 2025." in view
+    assert "এ সপ্তাহে ভর্তি রোগী ২০২৫ সালের একই সপ্তাহের চেয়ে বেশি।" in view
+    assert "In the last 2 years, dengue peaked between May and October." in view

@@ -84,3 +84,30 @@ def test_a_changed_side_chart_does_not_cost_us_the_weekly_cases(monkeypatch, tmp
     metrics = {m for (m,) in conn.execute("select distinct metric from obs")}
     assert "dengue_admit_week" in metrics and "dengue_cases_year_male" in metrics and "dengue_admit_year_city" in metrics
     assert "dengue_deaths_year_male" not in metrics
+
+
+def test_past_years_weekly_national_cases_are_read_on_dghs_weeks():
+    from dengue_link.dghs_dashboard import parse_national_weeks, week_start
+
+    weeks = parse_national_weeks((FIXTURES / "dghs_dashboard.html").read_text())
+    assert len(weeks) == 3 * 52
+    assert weeks[week_start(2023, 1)] == 105 and weeks[week_start(2024, 1)] == 362 and weeks[week_start(2025, 2)] == 221
+    assert max(v for d, v in weeks.items() if week_start(2023, 1) <= d < week_start(2024, 1)) == 20244
+    # The same page's yearly chart gives 101,211 patients for 2024; 2 of them sit in the unlabelled slot before week 1.
+    assert sum(v for d, v in weeks.items() if week_start(2024, 1) <= d < week_start(2025, 1)) == 101211 - 2
+
+
+def test_fetch_keeps_past_years_weekly_national_cases(monkeypatch, tmp_path):
+    from dengue_link import db, dghs_dashboard
+
+    class Reply:
+        text = (FIXTURES / "dghs_dashboard.html").read_text()
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(dghs_dashboard.requests, "get", lambda *a, **k: Reply())
+    conn = db.connect(tmp_path / "t.db")
+    dghs_dashboard.fetch(conn)
+    (n,) = conn.execute("select count(*) from obs where metric='dengue_admit_week_national' and area='Bangladesh'").fetchone()
+    assert n == 156

@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 
 MIN_TRAINING_WEEKS = 4
+BAND = (0.1, 0.9)
+MIN_BAND_MISSES = 20
 FEATURES = ["own_growth", "neighbour_growth", "neighbour_pressure", "rain_2_3wk"]
 
 
@@ -14,7 +16,7 @@ def _beyond_noise(a, b):
     return np.sign(g) * (g.abs() - 2 * se).clip(lower=0)
 
 
-def _features(cases, rain, neighbours, period, extra=None):
+def _features(cases, rain, neighbours, period, extra=None, horizon=1):
     week = cases.rolling(period).sum()
     prev = week.shift(period)
     nb_week = pd.DataFrame({d: week[sorted(neighbours[d])].mean(axis=1) for d in cases}, index=cases.index)
@@ -27,7 +29,7 @@ def _features(cases, rain, neighbours, period, extra=None):
         "neighbour_growth": _beyond_noise(nb_week, nb_prev),
         "neighbour_pressure": _beyond_noise(nb_week, week),
         "rain_2_3wk": rain_z.fillna(0),
-        "target": np.log((week.shift(-period) + 1) / (week + 1)),
+        "target": np.log((week.shift(-period * horizon) + 1) / (week + 1)),
     }
     for name, frame in (extra or {}).items():
         frames[name] = frame.reindex(index=cases.index, columns=cases.columns).fillna(0)
@@ -38,9 +40,9 @@ def _design(df, names):
     return np.column_stack([df[f].to_numpy() for f in names])
 
 
-def fit(cases, rain, neighbours, period=7, extra=None):
+def fit(cases, rain, neighbours, period=7, extra=None, horizon=1):
     names = FEATURES + list(extra or {})
-    rows = _features(cases, rain, neighbours, period, extra).dropna()
+    rows = _features(cases, rain, neighbours, period, extra, horizon).dropna()
     if rows.index.get_level_values(0).nunique() < MIN_TRAINING_WEEKS * period:
         raise ValueError(f"need {MIN_TRAINING_WEEKS}+ weeks of usable history to fit")
     w = np.sqrt(rows["recent"].to_numpy() + 1)
@@ -68,17 +70,27 @@ def forecast(model, cases, rain, neighbours, period=7, extra=None):
     )
 
 
-def backtest(cases, rain, neighbours, start, period=7, extra=None):
-    model_err, base_err = [], []
-    for pos in range(cases.index.get_indexer([start], method="bfill")[0], len(cases) - period, period):
+def backtest(cases, rain, neighbours, start, period=7, extra=None, horizon=1):
+    model_err, base_err, misses, held = [], [], [], []
+    for pos in range(cases.index.get_indexer([start], method="bfill")[0], len(cases) - period * horizon, period):
         past, past_rain = cases.iloc[: pos + 1], rain.loc[: cases.index[pos]]
         past_extra = {k: v.loc[: cases.index[pos]] for k, v in (extra or {}).items()}
-        model = fit(past, past_rain, neighbours, period, past_extra)
+        model = fit(past, past_rain, neighbours, period, past_extra, horizon)
         out = forecast(model, past, past_rain, neighbours, period, past_extra)
-        actual = cases.iloc[pos + 1 : pos + 1 + period].sum()[out.index]
+        actual = cases.iloc[pos + 1 + period * (horizon - 1) : pos + 1 + period * horizon].sum()[out.index]
         model_err += list((out["next7"] - actual).abs())
         base_err += list((out["recent"] - actual).abs())
-    return {"model_mae": float(np.mean(model_err)), "baseline_mae": float(np.mean(base_err)), "n": len(model_err)}
+        miss = list(np.log((actual + 1) / (out["next7"] + 1)))
+        # Each week is scored against a band built only from earlier weeks, so the hit rate is honest.
+        if len(misses) >= MIN_BAND_MISSES:
+            low, high = np.quantile(misses, BAND)
+            held += [low <= m <= high for m in miss]
+        misses += miss
+    if not model_err:
+        raise ValueError("too little history to score a forecast this far ahead")
+    return {"model_mae": float(np.mean(model_err)), "baseline_mae": float(np.mean(base_err)), "n": len(model_err),
+            "band": tuple(float(q) for q in np.quantile(misses, BAND)),
+            "band_held": float(np.mean(held)) if held else None, "band_checked": len(held)}
 
 
 def split_by_share(division_out, district_recent, district_division):

@@ -38,9 +38,19 @@ def test_forecasts_are_never_negative():
 def test_backtest_reports_model_against_same_as_last_week():
     cases, rain = wave()
     result = backtest(cases, rain, NEIGHBOURS, start=cases.index[90])
-    assert set(result) == {"model_mae", "baseline_mae", "n"}
+    assert {"model_mae", "baseline_mae", "n"} <= set(result)
     assert result["n"] > 50
     assert result["model_mae"] < result["baseline_mae"]
+
+
+def test_backtest_returns_error_band_and_how_often_it_held():
+    cases, rain = wave(days=400)
+    result = backtest(cases, rain, NEIGHBOURS, start=cases.index[90])
+    low, high = result["band"]
+    assert low < 0 < high
+    # The band is the middle 80% of past misses; scored only on weeks it hadn't seen, it should hold roughly that often.
+    assert 0.65 <= result["band_held"] <= 0.95
+    assert 0 < result["band_checked"] < result["n"]
 
 
 def test_too_little_history_is_refused():
@@ -91,3 +101,25 @@ def test_without_extra_signals_the_forecast_is_unchanged():
     cases, rain = wave()
     model = fit(cases, rain, NEIGHBOURS)
     assert set(model) == {"own_growth", "neighbour_growth", "neighbour_pressure", "rain_2_3wk"}
+
+
+def test_a_forecast_several_weeks_ahead_is_scored_against_the_same_as_this_week_guess():
+    # Dengue rises and falls over months, so the test season is a slow wave reaching each district two weeks after the last.
+    rng = np.random.default_rng(0)
+    t, idx = np.arange(90), pd.date_range("2025-01-05", periods=90, freq="7D")
+    cases = pd.DataFrame({d: rng.poisson(60 + 300 * (1 + np.sin(2 * np.pi * (t - 2 * i) / 30))) for i, d in enumerate(CHAIN)},
+                         index=idx).astype(float)
+    rain = pd.DataFrame(0.0, index=idx, columns=CHAIN)
+    one = backtest(cases, rain, NEIGHBOURS, start=idx[30], period=1)
+    three = backtest(cases, rain, NEIGHBOURS, start=idx[30], period=1, horizon=3)
+    # Guessing "same as this week" gets worse the further ahead it looks; the model should still beat it.
+    assert three["baseline_mae"] > one["baseline_mae"]
+    assert three["model_mae"] < three["baseline_mae"]
+    assert three["n"] == one["n"] - 2 * len(CHAIN)
+
+
+def test_a_backtest_with_no_past_week_to_score_says_so_instead_of_crashing():
+    idx = pd.date_range("2026-01-04", periods=14, freq="7D")
+    cases = pd.DataFrame(np.random.default_rng(0).poisson(100, size=(14, len(CHAIN))), index=idx, columns=CHAIN).astype(float)
+    with pytest.raises(ValueError, match="history"):
+        backtest(cases, cases * 0, NEIGHBOURS, start=idx[12], period=1, horizon=2)
