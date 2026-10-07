@@ -1,9 +1,10 @@
 import html
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from dengue_link.bangla import bn_digits
+from dengue_link.dghs_dashboard import week_start
 
 
 def _round(coords, places=3):
@@ -40,6 +41,7 @@ SOURCE_NAMES = {
     "DGHS hospital list": ("Health directorate (DGHS): list of government hospitals, checked weekly", "স্বাস্থ্য অধিদপ্তর: সরকারি হাসপাতালের তালিকা, সপ্তাহে একবার যাচাই করা হয়"),
     "DNCC dengue dashboard": ("Dhaka North dengue dashboard: ward risk, spray days and test centres", "ঢাকা উত্তরের ডেঙ্গু ড্যাশবোর্ড: ওয়ার্ডের ঝুঁকি, ওষুধ ছিটানোর দিন ও পরীক্ষাকেন্দ্র"),
     "BMD forecast and warnings": ("Meteorological Department (BMD): today's rain forecast and official warnings", "আবহাওয়া অধিদপ্তর: আজকের বৃষ্টির পূর্বাভাস ও সরকারি সতর্কবার্তা"),
+    "BMD district rain, coming days": ("Meteorological Department (BMD, via BAMIS): district rain for the coming days", "আবহাওয়া অধিদপ্তর (বামিস): সামনের কয়েক দিনে প্রতি জেলায় বৃষ্টি"),
 }
 
 
@@ -291,6 +293,96 @@ def _who_view(who):
                  "১ জানুয়ারি থেকে সারা দেশে হাসপাতালে ভর্তি রোগী, স্বাস্থ্য অধিদপ্তরের হিসাব।") + "</p></section>")
 
 
+def _week_month(year, week):
+    return (week_start(int(year), week + 1) + timedelta(days=3)).month
+
+
+def _nice(top):
+    mag = 10 ** (len(str(int(top))) - 1)
+    return next(m * mag for m in (1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10) if m * mag >= top)
+
+
+def _season_view(season):
+    if not season or len(season) < 2:
+        return ""
+    *past, now = sorted(season)
+    seen = [i for i, v in enumerate(season[now]) if v is not None]
+    if not seen:
+        return ""
+    last = seen[-1]
+    peak = {y: max((i for i, v in enumerate(season[y]) if v is not None), key=season[y].__getitem__) for y in past if any(v is not None for v in season[y])}
+    months = {_week_month(y, k) for y, k in peak.items()}
+    first, end = min(months), max(months)
+    peak_en = f"in {date(2000, first, 1):%B}" if first == end else f"between {date(2000, first, 1):%B} and {date(2000, end, 1):%B}"
+    peak_bn = f"{MONTHS_BN[first - 1]} মাসে" if first == end else f"{MONTHS_BN[first - 1]} থেকে {MONTHS_BN[end - 1]} মাসের মধ্যে"
+    compared = [y for y in past if season[y][last] is not None]
+    n, higher = len(compared), sum(season[now][last] > season[y][last] for y in compared)
+    more_en, more_bn = ("more", "বেশি") if higher else ("fewer", "কম")
+    if n == 1:
+        cmp_en, cmp_bn = f"{more_en} people were admitted than in the same week of {compared[0]}", f"{compared[0]} সালের একই সপ্তাহের চেয়ে {more_bn}"
+    elif higher in (0, n):
+        cmp_en, cmp_bn = f"{more_en} people were admitted than in the same week of any of the last {n} years", f"গত {n} বছরের যেকোনো বছরের একই সপ্তাহের চেয়ে {more_bn}"
+    else:
+        cmp_en, cmp_bn = f"more people were admitted than in the same week of {higher} of the last {n} years", f"গত {n} বছরের মধ্যে {higher} বছরের একই সপ্তাহের চেয়ে বেশি"
+    caption = _t(f"In the last {len(peak)} years, dengue peaked {peak_en}." + (f" This week, {cmp_en}." if n else ""),
+                 bn_digits(f"গত {len(peak)} বছরে ডেঙ্গু সবচেয়ে বেশি ছড়িয়েছে {peak_bn}।" + (f" এ সপ্তাহে ভর্তি রোগী {cmp_bn}।" if n else "")))
+
+    w, h, left, right, top_pad, bottom = 400, 220, 58, 36, 14, 26
+    top = _nice(max(v for y in season for v in season[y] if v is not None) or 1)
+    x = lambda k: left + k * (w - left - right) / 51
+    y = lambda v: top_pad + (h - top_pad - bottom) * (1 - v / top)
+    grid = "".join(
+        f'<line class="grid" x1="{left}" x2="{w - right}" y1="{y(v):.1f}" y2="{y(v):.1f}"/>'
+        f'<text x="{left - 6}" y="{y(v) + 4:.1f}" text-anchor="end">{_svg_t(f"{v:,.0f}", bn_digits(f"{v:,.0f}"))}</text>'
+        for v in (0, top / 2, top))
+    ticks = "".join(
+        f'<text x="{x((date(2001, m, 1) - week_start(2001, 1)).days / 7):.1f}" y="{h - 6}" text-anchor="middle">'
+        f'{_svg_t(date(2000, m, 1).strftime("%b"), MONTHS_BN[m - 1])}</text>' for m in (1, 4, 7, 10))
+    placed = []
+
+    def label(cls, cx, cy, yr):
+        # Labels are about 36 by 16 units; a label that would sit on another one moves up until it is clear.
+        while any(abs(cx - px) < 36 and abs(cy - py) < 16 for px, py in placed):
+            cy -= 16
+        placed.append((cx, cy))
+        return f'<text{cls} x="{cx:.1f}" y="{cy:.1f}" text-anchor="middle">{_svg_t(yr, bn_digits(yr))}</text>'
+
+    lines = (f'<polyline class="now" points="{" ".join(f"{x(i):.1f},{y(season[now][i]):.1f}" for i in seen)}"/>'
+             f'<circle class="now-dot" cx="{x(last):.1f}" cy="{y(season[now][last]):.1f}" r="4"/>')
+    labels = label(' class="yr-now"', x(last), y(season[now][last]) - 10, now)
+    for yr in sorted(peak, key=lambda yr: -season[yr][peak[yr]]):
+        k = peak[yr]
+        lines = f'<polyline class="past" points="{" ".join(f"{x(i):.1f},{y(v):.1f}" for i, v in enumerate(season[yr]) if v is not None)}"/>' + lines
+        labels += label("", x(k), y(season[yr][k]) - 8, yr)
+    lines += labels
+
+    by_month = {yr: {m: 0.0 for m in range(1, 13)} for yr in season}
+    for yr, weeks in season.items():
+        for k, v in enumerate(weeks):
+            if v is not None:
+                by_month[yr][_week_month(yr, k)] += v
+    cell = lambda yr, m: ("–" if yr == now and _week_month(now, last) < m else _t(f"{by_month[yr][m]:,.0f}", bn_digits(f"{by_month[yr][m]:,.0f}")))
+    rows = "".join(f'<tr><th scope="row">{_t(date(2000, m, 1).strftime("%B"), MONTHS_BN[m - 1])}</th>'
+                   + "".join(f'<td class="num">{cell(yr, m)}</td>' for yr in sorted(season)) + "</tr>" for m in range(1, 13))
+    head = "".join(f'<th scope="col">{_t(yr, bn_digits(yr))}</th>' for yr in sorted(season))
+    return (
+        '<section id="season" class="season" aria-labelledby="season-title"><h3 id="season-title">'
+        + _t("This year compared with past years", "আগের বছরগুলোর তুলনায় এ বছর") + f"</h3><p>{caption}</p>"
+        + f'<svg viewBox="0 0 {w} {h}" role="img" aria-labelledby="season-title"><g aria-hidden="true">{grid}{ticks}{lines}</g></svg>'
+        + '<p class="legend-line muted small"><i class="sw now"></i>' + _t(f"This year ({now})", f"এ বছর ({bn_digits(now)})")
+        + '<i class="sw past"></i>' + _t("Past years", "আগের বছরগুলো") + "</p>"
+        + '<p class="muted small">' + _t("People admitted to hospital with dengue each week across Bangladesh, from the health directorate (DGHS).",
+                                          "প্রতি সপ্তাহে সারা দেশে ডেঙ্গু নিয়ে হাসপাতালে ভর্তি রোগী, স্বাস্থ্য অধিদপ্তরের হিসাব।") + "</p>"
+        + "<details><summary>" + _t("Show as a table", "টেবিলে দেখুন") + '</summary><div class="table-wrap" tabindex="0" role="region" aria-labelledby="season-caption">'
+        + '<table><caption id="season-caption">' + _t("Patients admitted each month", "প্রতি মাসে ভর্তি রোগী")
+        + f'</caption><thead><tr><th scope="col">{_t("Month", "মাস")}</th>{head}</tr></thead><tbody>{rows}</tbody></table></div></details></section>'
+    )
+
+
+def _svg_t(en, bn):
+    return f'<tspan data-l="en">{en}</tspan><tspan data-l="bn">{bn}</tspan>'
+
+
 def _full_date(d):
     return _t(f"{d.day} {d:%B %Y}", bn_digits(f"{d.day} {MONTHS_BN[d.month - 1]} {d.year}"))
 
@@ -327,12 +419,13 @@ def _history(districts, past_weeks):
     # Past weeks are coloured on next week's scale, so the map can be compared from one week to the next.
     top = districts.groupby(districts["level"].map(LEVELS.index))["rate"].max()
     cuts = [top[top.index <= i].max() if (top.index <= i).any() else float("-inf") for i in range(len(LEVELS) - 1)]
-    levels = {}
+    levels, counts = {}, {}
     for d, row in districts.iterrows():
         if row.division in past_weeks.columns and row.population == row.population:
             rates = past_weeks[row.division] * row.share / row.population * 100_000
             levels[d] = [int(sum(r > c for c in cuts)) for r in rates]
-    return {"weeks": [w.date().isoformat() for w in past_weeks.index], "levels": levels}
+            counts[d] = [round(float(n), 1) if n == n else None for n in past_weeks[row.division] * row.share]
+    return {"weeks": [w.date().isoformat() for w in past_weeks.index], "levels": levels, "counts": counts}
 
 
 def _badge(level):
@@ -342,7 +435,7 @@ def _badge(level):
 
 def render(out_path, *, upazilas, upazila_district, districts, divisions, novelty, backtest, wards, ward_spray, as_of,
            sources, country, district_shapes, bn, mosquito, national=None, who=None, city=None, hospitals=None, test_centres=None,
-           weather=None, warnings=(), ward_risk=None, spray=None, past_weeks=None):
+           weather=None, warnings=(), ward_risk=None, spray=None, past_weeks=None, season=None, rain_week=None, ahead=None):
     districts = districts.assign(rate=districts["next7"] / districts["population"] * 100_000)
     districts = districts.assign(level=_levels(districts["rate"]))
     upazila_index = [
@@ -371,6 +464,8 @@ def render(out_path, *, upazilas, upazila_district, districts, divisions, novelt
         "testCentres": test_centres["items"] if test_centres and test_centres["items"] else None,
         "weather": weather,
         "warnings": list(warnings),
+        "rainWeek": rain_week,
+        "ahead": ahead,
         "wardRisk": ward_risk,
         "spray": spray["items"] if spray else None,
         "sprayChecked": spray["checked"] if spray else None,
@@ -429,6 +524,16 @@ def render(out_path, *, upazilas, upazila_district, districts, divisions, novelt
         + ("অর্থাৎ পূর্বাভাসটি সেই সহজ অনুমানের চেয়ে ভালো।" if better else
            "<strong>তাই এখনো এই পূর্বাভাস সেই সহজ অনুমানের চেয়ে ভালো নয়। একে মোটামুটি ইঙ্গিত হিসেবে দেখুন, নিশ্চিত পূর্বাভাস হিসেবে নয়।</strong>"),
     ) + "</p>"
+    if backtest.get("band_checked"):
+        held, checked = f"{backtest['band_held'] * 100:.0f}", str(backtest["band_checked"])
+        accuracy_html += "<p>" + _t(
+            f"Each district also gets a likely range, worked out from how far off past forecasts were. In the {checked} past division "
+            f"forecasts we checked, the real number of patients fell inside that range about {held} out of every 100 times. "
+            "District numbers are less certain than that, because each division's total is shared between its districts.",
+            f"প্রতিটি জেলার জন্য একটি সম্ভাব্য সীমাও দেখানো হয়, আগের পূর্বাভাসগুলো কতটা মেলেনি তা দেখে। আগের {bn_digits(checked)}টি "
+            f"বিভাগীয় পূর্বাভাস মিলিয়ে দেখা গেছে, প্রতি ১০০টির মধ্যে {bn_digits(held)}টিতে আসল রোগীর সংখ্যা সেই সীমার মধ্যেই ছিল। "
+            "জেলার হিসাব এর চেয়ে কম নিশ্চিত, কারণ প্রতিটি বিভাগের মোট সংখ্যা তার জেলাগুলোর মধ্যে ভাগ করা হয়।",
+        ) + "</p>"
     source_items = ""
     for nm, st, _detail in sources:
         name_en, name_bn = SOURCE_NAMES.get(nm, (nm, nm))
@@ -445,6 +550,7 @@ def render(out_path, *, upazilas, upazila_district, districts, divisions, novelt
         TEMPLATE.replace("{{as_of}}", _t(as_of.strftime("%-d %B %Y"), bn_digits(f"{as_of.day} {MONTHS_BN[as_of.month - 1]} {as_of.year}")))
         .replace("{{rising}}", rising)
         .replace("{{national}}", _national_line(national))
+        .replace("{{season}}", _season_view(season))
         .replace("{{rows}}", rows)
         .replace("{{div_cards}}", div_cards)
         .replace("{{who}}", _who_view(who))

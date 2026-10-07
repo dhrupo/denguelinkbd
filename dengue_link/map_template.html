@@ -18,7 +18,7 @@ try {
   --primary:#1E40AF; --on-primary:#FFFFFF; --ring:#1E40AF; --accent:#B45309; --on-accent:#FFFFFF;
   --up:#B91C1C; --down:#15803D; --flat:#475569;
   --f0:#FFFFB2; --f1:#FECC5C; --f2:#FD8D3C; --f3:#E31A1C; --f4:#800026;
-  --line:#64748B; --border-strong:#334155; --map-bg:#E6EEF5; --halo:#FFFFFF;
+  --line:#64748B; --past:#8492A6; --border-strong:#334155; --map-bg:#E6EEF5; --halo:#FFFFFF;
   --float-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);
   --bar-h:72px; --bottom-h:0px;
 }
@@ -26,7 +26,7 @@ try {
   --bg:#0B1220; --surface:#131C31; --fg:#E2E8F0; --muted:#A3B1C6; --border:#2A3754; --hover:#1B2742;
   --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24; --on-accent:#111827;
   --up:#FCA5A5; --down:#86EFAC; --flat:#CBD5E1;
-  --line:#0B1220; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
+  --line:#0B1220; --past:#5B6B84; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
   --float-shadow:0 1px 3px rgba(0,0,0,.6),0 4px 8px 3px rgba(0,0,0,.35);
 }
 @media (prefers-color-scheme: dark) {
@@ -34,7 +34,7 @@ try {
     --bg:#0B1220; --surface:#131C31; --fg:#E2E8F0; --muted:#A3B1C6; --border:#2A3754; --hover:#1B2742;
     --primary:#93C5FD; --on-primary:#0B1220; --ring:#93C5FD; --accent:#FBBF24; --on-accent:#111827;
     --up:#FCA5A5; --down:#86EFAC; --flat:#CBD5E1;
-    --line:#0B1220; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
+    --line:#0B1220; --past:#5B6B84; --border-strong:#E2E8F0; --map-bg:#0E1729; --halo:#0B1220;
     --float-shadow:0 1px 3px rgba(0,0,0,.6),0 4px 8px 3px rgba(0,0,0,.35);
   }
 }
@@ -111,6 +111,10 @@ nav.views a:hover { background:var(--hover); }
 .prose { max-width:760px; }
 .prose-wide { max-width:1180px; }
 .lead-big { font-size:1.125rem; margin:16px 0; }
+.ahead { margin:12px 0; } .ahead h3 { font-size:1rem; margin:0 0 4px; } .ahead ul { margin:6px 0; padding-left:18px; }
+.ahead svg { width:100%; max-width:360px; height:auto; display:block; margin:6px 0; }
+.ahead .past { fill:none; stroke:var(--muted); stroke-width:2; } .ahead .next { fill:none; stroke:var(--primary); stroke-width:2.5; stroke-dasharray:5 4; }
+.ahead .band { fill:var(--primary); opacity:.18; } .ahead .now { stroke:var(--border); stroke-width:1; }
 .trend-fig { margin:0 0 18px; color:var(--primary); }
 .spark { width:100%; max-width:640px; height:70px; display:block; }
 .spark-dates { display:flex; justify-content:space-between; max-width:640px; font-size:.8125rem; }
@@ -155,6 +159,17 @@ th, td { padding:8px; border-bottom:1px solid var(--border); text-align:left; } 
 .bar-row { display:grid; grid-template-columns:8.5em 1fr 3em; align-items:center; gap:10px; }
 .bar-row .num { text-align:right; }
 #who { margin-top:28px; max-width:760px; }
+.season { margin-top:28px; max-width:760px; }
+.season svg { width:100%; max-width:480px; height:auto; display:block; margin:8px 0; }
+.season text { fill:var(--muted); font-size:14px; }
+.season .grid { stroke:var(--border); stroke-width:1; }
+.season .past { fill:none; stroke:var(--past); stroke-width:1.5; stroke-linejoin:round; }
+.season .now { fill:none; stroke:var(--primary); stroke-width:2.5; stroke-linejoin:round; }
+.season .now-dot { fill:var(--primary); stroke:var(--surface); stroke-width:2; }
+.season .yr-now { fill:var(--fg); font-weight:600; }
+.legend-line { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.legend-line .sw { display:inline-block; width:18px; height:0; border-top:3px solid var(--past); margin-left:8px; }
+.legend-line .sw.now { border-color:var(--primary); margin-left:0; }
 #hospital-finder { margin:28px 0; }
 #finder-title { scroll-margin-top:calc(var(--bar-h) + 12px); }
 .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
@@ -309,6 +324,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
   <section class="view page" id="view-risk" aria-labelledby="risk-title" hidden>
     <h2 id="risk-title" tabindex="-1"><span data-l="en">Where dengue could hit hardest next week</span><span data-l="bn" lang="bn">আগামী সপ্তাহে কোথায় ডেঙ্গু বেশি ছড়াতে পারে</span></h2>
     {{national}}
+    {{season}}
     <span id="switch-label" class="sr-only"><span data-l="en">Show by</span><span data-l="bn" lang="bn">যেভাবে দেখবেন</span></span>
     <div class="switch" role="group" aria-labelledby="switch-label">
       <button type="button" id="show-districts" aria-pressed="true"><span data-l="en">Districts</span><span data-l="bn" lang="bn">জেলা</span></button>
@@ -371,7 +387,13 @@ body.place-open #answer, body.place-open .banner { display:none; }
       <li class="card"><h4 class="call"><a href="tel:01709900888"><span data-l="en">01709900888</span><span data-l="bn" lang="bn">০১৭০৯৯০০৮৮৮</span></a></h4>
         <p><strong><span data-l="en">Dhaka South: report mosquito breeding</span><span data-l="bn" lang="bn">ঢাকা দক্ষিণ: কোথাও মশা জন্মাচ্ছে? জানান</span></strong></p>
         <p><span data-l="en">Seen standing water or Aedes larvae in Dhaka South? Tell the city corporation's control room.</span><span data-l="bn" lang="bn">ঢাকা দক্ষিণে জমা পানি বা এডিসের লার্ভা দেখেছেন? সিটি কর্পোরেশনের নিয়ন্ত্রণ কক্ষে জানান।</span></p>
-        <p class="muted small"><a href="https://dscc.gov.bd/" target="_blank" rel="noopener">dscc.gov.bd</a> · <span data-l="en">In Dhaka North, see <a href="https://dncc.gov.bd/" target="_blank" rel="noopener">dncc.gov.bd</a> for its control room.</span><span data-l="bn" lang="bn">ঢাকা উত্তরের নিয়ন্ত্রণ কক্ষের নম্বর পাবেন <a href="https://dncc.gov.bd/" target="_blank" rel="noopener">dncc.gov.bd</a>-এ।</span></p></li>
+        <p class="muted small"><a href="https://dscc.gov.bd/" target="_blank" rel="noopener">dscc.gov.bd</a></p></li>
+      <li class="card"><h4 class="call"><a href="tel:01716063425"><span data-l="en">01716-063425</span><span data-l="bn" lang="bn">০১৭১৬-০৬৩৪২৫</span></a></h4>
+        <p><strong><span data-l="en">Dhaka North: dengue control room</span><span data-l="bn" lang="bn">ঢাকা উত্তর: ডেঙ্গু কন্ট্রোল রুম</span></strong></p>
+        <p><span data-l="en">Advice about dengue and where to get tested in Dhaka North. If this number is busy, try</span><span data-l="bn" lang="bn">ঢাকা উত্তরে ডেঙ্গু নিয়ে পরামর্শ আর কোথায় পরীক্ষা করাবেন, তা জানতে। এই নম্বর ব্যস্ত থাকলে ফোন করুন</span>
+          <a href="tel:01773393276"><span data-l="en">01773-393276</span><span data-l="bn" lang="bn">০১৭৭৩-৩৯৩২৭৬</span></a> <span data-l="en">or</span><span data-l="bn" lang="bn">অথবা</span>
+          <a href="tel:01715238754"><span data-l="en">01715-238754</span><span data-l="bn" lang="bn">০১৭১৫-২৩৮৭৫৪</span></a><span data-l="en">.</span><span data-l="bn" lang="bn"> নম্বরে।</span></p>
+        <p class="muted small"><a href="https://dncc.gov.bd/" target="_blank" rel="noopener">dncc.gov.bd</a></p></li>
     </ul>
     {{hospitals}}
     <div class="prose">
@@ -476,6 +498,11 @@ body.place-open #answer, body.place-open .banner { display:none; }
       inDistrict: function (u, d) { return u + " is in " + d + " district. We don't have upazila figures, so you're seeing the numbers for the whole district."; },
       division: function (v) { return v + " division"; },
       expected: function (d, n) { return "Around " + n + " people may be admitted to hospital with dengue next week."; },
+      range: function (lo, hi) { return "Likely between " + lo + " and " + hi + "."; },
+      aheadTitle: function (n) { return "The next " + n + " weeks"; },
+      aheadTrend: function (dir, n) { return (dir > 0 ? "Likely to keep rising" : dir < 0 ? "Likely to fall" : "Likely to stay about the same") + " over the next " + n + " weeks."; },
+      aheadWeek: function (d, n, lo, hi) { return "Week of " + d + ": about " + n + " (likely " + lo + "–" + hi + ")"; },
+      aheadNote: "The further ahead, the less certain, so the shaded band gets wider.",
       trend: function (v, x) { return x > 0.05 ? "Across " + v + " division, cases may rise by about " + pct(x) + " next week."
         : x < -0.05 ? "Across " + v + " division, cases may fall by about " + pct(-x) + " next week." : "Across " + v + " division, cases should stay about the same."; },
       perLakh: function (r) { return "That's about " + r + " for every 100,000 people."; },
@@ -495,7 +522,9 @@ body.place-open #answer, body.place-open .banner { display:none; }
       coverage: { "ONE OR TWO PLACES": "one or two places", "A FEW PLACES": "a few places", "MANY PLACES": "many places", "MOST PLACES": "most places" },
       rainLine: function (v, where, heavy, day) { return "Meteorological Department's latest forecast (" + day + "): rain at " + (where || "places") + " in " + v + " division" + (heavy ? ", heavy in places" : "") + ". When it stops, empty any water left in buckets, tubs, tyres and plant pots."; },
       warnTitle: "Official warning", warnUntil: function (d) { return "In force until " + d + "."; }, warnLink: "Read the Met Department's notice",
-      homeRain: function (v) { return "The Met Department expects rain in " + v + " division. Check these again once it stops."; }, homeDone: "All done. Check again in a week, or after the next rain.",
+      homeRain: function (v) { return "The Met Department expects rain in " + v + " division. Check these again once it stops."; },
+      homeRainDistrict: function (v) { return "The Met Department expects rain in " + v + " district in the coming days. Check these again once it stops."; },
+      rainWeek: function (v, mm, from, to) { return "Met Department forecast for " + from + "–" + to + ": " + (mm == null ? "no rain expected in " + v + " district." : "about " + mm + " mm of rain in " + v + " district. When it stops, empty any water left in buckets, tubs, tyres and plant pots."); }, homeDone: "All done. Check again in a week, or after the next rain.",
       wardRating: function (l, n) { return "City corporation's rating: " + l.toLowerCase() + " risk. " + n + " patients in the last 3 weeks."; },
       rating: { Low: "Low", Moderate: "Moderate", High: "High" },
       sprayTitle: function (n) { return "Ward " + n + ": which days each area is sprayed"; }, sprayNone: "The city's area-by-area list doesn't cover this ward yet.", and: " and ",
@@ -516,6 +545,10 @@ body.place-open #answer, body.place-open .banner { display:none; }
         "This district's share of " + dv + " division's patients: " + pct(d.share), "Worked out as: division forecast × district share"]; },
       noData: "We have no dengue figures for this area.",
       subUpazila: function (d) { return "Upazila, " + d + " district"; }, subDistrict: function (v) { return "District, " + v + " division"; },
+      subWard: function (n) { return "Ward " + n + ", Dhaka North"; }, wardTitle: function (n) { return "Ward " + n; },
+      wardLevel: function (l) { return "City corporation's rating: " + l.toLowerCase() + " risk."; },
+      wardWeek: function (n, before) { return n + " patients in the last 7 days" + (before == null ? "." : ", against " + before + " the week before."); },
+      wardReason: function (p, c) { return "The rating looks at how many patients there are (" + p.toLowerCase() + ") and how crowded the ward is (" + c.toLowerCase() + ")."; },
       noMatch: function (q) { return "Nothing found for “" + q + "”. Try a district name such as Dhaka or Sylhet."; },
       ward: function (n, days) { return "Ward " + n + ": " + (days != null ? "spraying " + days + " days a week" : "no spraying plan published"); },
       zoneCatch: function (z, name, n) { return name + " zone: " + n + " Aedes mosquitoes caught last week"; },
@@ -530,6 +563,11 @@ body.place-open #answer, body.place-open .banner { display:none; }
       inDistrict: function (u, d) { return u + " পড়েছে " + d + " জেলায়। উপজেলাভিত্তিক হিসাব পাওয়া যায় না, তাই পুরো জেলার হিসাব দেখানো হচ্ছে।"; },
       division: function (v) { return v + " বিভাগ"; },
       expected: function (d, n) { return "আগামী সপ্তাহে প্রায় " + n + " জন ডেঙ্গু নিয়ে হাসপাতালে ভর্তি হতে পারেন।"; },
+      range: function (lo, hi) { return "সম্ভবত " + lo + " থেকে " + hi + " জনের মধ্যে।"; },
+      aheadTitle: function (n) { return "সামনের " + n + " সপ্তাহ"; },
+      aheadTrend: function (dir, n) { return "সামনের " + n + " সপ্তাহে রোগী " + (dir > 0 ? "আরও বাড়তে পারে।" : dir < 0 ? "কমতে পারে।" : "প্রায় একই রকম থাকতে পারে।"); },
+      aheadWeek: function (d, n, lo, hi) { return d + " থেকে শুরু সপ্তাহ: প্রায় " + n + " জন (সম্ভবত " + lo + "–" + hi + ")"; },
+      aheadNote: "যত সামনের সপ্তাহ, তত অনিশ্চিত; তাই ছায়া দেওয়া অংশ চওড়া হতে থাকে।",
       trend: function (v, x) { return x > 0.05 ? v + " বিভাগে আগামী সপ্তাহে রোগী প্রায় " + pct(x) + " বাড়তে পারে।"
         : x < -0.05 ? v + " বিভাগে আগামী সপ্তাহে রোগী প্রায় " + pct(-x) + " কমতে পারে।" : v + " বিভাগে আগামী সপ্তাহে রোগীর সংখ্যা মোটামুটি একই থাকতে পারে।"; },
       perLakh: function (r) { return "অর্থাৎ প্রতি ১ লাখ মানুষে প্রায় " + r + " জন।"; },
@@ -549,7 +587,9 @@ body.place-open #answer, body.place-open .banner { display:none; }
       coverage: { "ONE OR TWO PLACES": "দু-এক জায়গায়", "A FEW PLACES": "কিছু কিছু জায়গায়", "MANY PLACES": "অনেক জায়গায়", "MOST PLACES": "অধিকাংশ জায়গায়" },
       rainLine: function (v, where, heavy, day) { return "আবহাওয়া অধিদপ্তরের সর্বশেষ পূর্বাভাস (" + day + "): " + v + " বিভাগের " + (where || "কোথাও কোথাও") + " বৃষ্টি হতে পারে" + (heavy ? ", কোথাও কোথাও ভারী" : "") + "। বৃষ্টি থামলে বালতি, গামলা, টায়ার আর ফুলের টবে জমা পানি ফেলে দিন।"; },
       warnTitle: "সরকারি সতর্কবার্তা", warnUntil: function (d) { return d + " পর্যন্ত বহাল।"; }, warnLink: "আবহাওয়া অধিদপ্তরের বিজ্ঞপ্তি পড়ুন",
-      homeRain: function (v) { return "আবহাওয়া অধিদপ্তর বলছে, " + v + " বিভাগে বৃষ্টি হতে পারে। বৃষ্টি থামলে এগুলো আবার দেখে নিন।"; }, homeDone: "সব দেখা হয়েছে। এক সপ্তাহ পর, অথবা পরের বৃষ্টির পর আবার দেখুন।",
+      homeRain: function (v) { return "আবহাওয়া অধিদপ্তর বলছে, " + v + " বিভাগে বৃষ্টি হতে পারে। বৃষ্টি থামলে এগুলো আবার দেখে নিন।"; },
+      homeRainDistrict: function (v) { return "আবহাওয়া অধিদপ্তর বলছে, সামনের কয়েক দিনে " + v + " জেলায় বৃষ্টি হতে পারে। বৃষ্টি থামলে এগুলো আবার দেখে নিন।"; },
+      rainWeek: function (v, mm, from, to) { return "আবহাওয়া অধিদপ্তরের পূর্বাভাস (" + from + "–" + to + "): " + v + " জেলায় " + (mm == null ? "বৃষ্টির সম্ভাবনা নেই।" : "প্রায় " + mm + " মিলিমিটার বৃষ্টি হতে পারে। বৃষ্টি থামলে বালতি, গামলা, টায়ার আর ফুলের টবে জমা পানি ফেলে দিন।"); }, homeDone: "সব দেখা হয়েছে। এক সপ্তাহ পর, অথবা পরের বৃষ্টির পর আবার দেখুন।",
       wardRating: function (l, n) { return "সিটি কর্পোরেশনের মূল্যায়ন: ঝুঁকি " + l + "। গত ৩ সপ্তাহে রোগী " + n + " জন।"; },
       rating: { Low: "কম", Moderate: "মাঝারি", High: "বেশি" },
       sprayTitle: function (n) { return n + " নম্বর ওয়ার্ড: কোন এলাকায় কোন দিন ওষুধ ছিটানো হয়"; }, sprayNone: "সিটি কর্পোরেশনের এলাকাভিত্তিক তালিকায় এই ওয়ার্ড এখনো নেই।", and: " ও ",
@@ -570,6 +610,10 @@ body.place-open #answer, body.place-open .banner { display:none; }
         dv + " বিভাগের রোগীর মধ্যে এই জেলার অংশ: " + pct(d.share), "হিসাবের নিয়ম: বিভাগের পূর্বাভাস × জেলার অংশ"]; },
       noData: "এই এলাকার ডেঙ্গুর কোনো হিসাব আমাদের কাছে নেই।",
       subUpazila: function (d) { return "উপজেলা, " + d + " জেলা"; }, subDistrict: function (v) { return "জেলা, " + v + " বিভাগ"; },
+      subWard: function (n) { return "ঢাকা উত্তরের " + n + " নম্বর ওয়ার্ড"; }, wardTitle: function (n) { return n + " নম্বর ওয়ার্ড"; },
+      wardLevel: function (l) { return "সিটি কর্পোরেশনের মূল্যায়ন: ঝুঁকি " + l + "।"; },
+      wardWeek: function (n, before) { return "গত ৭ দিনে রোগী " + n + " জন" + (before == null ? "।" : ", তার আগের সপ্তাহে ছিল " + before + " জন।"); },
+      wardReason: function (p, c) { return "মূল্যায়নে দেখা হয়েছে রোগী কত (" + p + ") আর ওয়ার্ডটি কতটা ঘনবসতিপূর্ণ (" + c + ")।"; },
       noMatch: function (q) { return "“" + q + "” নামে কিছু পাওয়া যায়নি। ঢাকা বা সিলেটের মতো কোনো জেলার নাম লিখে দেখুন।"; },
       ward: function (n, days) { return num(n) + " নম্বর ওয়ার্ড: " + (days != null ? "সপ্তাহে " + num(days) + " দিন মশার ওষুধ ছিটানোর কথা" : "ওষুধ ছিটানোর কোনো পরিকল্পনা প্রকাশ করা হয়নি"); },
       zoneCatch: function (z, name, n) { return name + " অঞ্চল: গত সপ্তাহে " + num(n) + "টি এডিস মশা ধরা পড়েছে"; },
@@ -691,6 +735,19 @@ body.place-open #answer, body.place-open .banner { display:none; }
   function dayNames(days) {
     return days.map(function (i) { return new Date(2024, 0, 1 + i).toLocaleDateString(lang() === "bn" ? "bn-BD" : "en-GB", { weekday: "long" }); }).join(t("and"));
   }
+  function wardPopup(ward) {
+    var box = el("div"), r = D.wardRisk && D.wardRisk.wards[String(ward)];
+    if (r) {
+      box.appendChild(el("h4", null, t("wardTitle")(num(ward))));
+      box.appendChild(el("p", null, t("wardLevel")(t("rating")[r.level])));
+      if (r.week != null) box.appendChild(el("p", null, t("wardWeek")(num(r.week), r.prev_week == null ? null : num(r.prev_week))));
+      if (r.week != null && r.population) box.appendChild(el("p", null, t("perLakh")(rate(r.week / r.population * 100000))));
+      var why = r.reason && t("rating")[r.reason.patients] && t("rating")[r.reason.crowding];
+      if (why) box.appendChild(el("p", "muted small", t("wardReason")(t("rating")[r.reason.patients], t("rating")[r.reason.crowding])));
+    }
+    box.appendChild(sprayPopup(ward));
+    return box;
+  }
   function sprayPopup(ward) {
     var box = el("div"), groups = D.spray && D.spray[String(ward)];
     box.appendChild(el("h4", null, t("sprayTitle")(num(ward))));
@@ -704,7 +761,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
   }
   var wards = D.wards && L.geoJSON(D.wards, { pane: "wards", style: wardStyle, onEachFeature: function (f, layer) {
     layer.bindTooltip("", { sticky: true });
-    layer.bindPopup(function () { return sprayPopup(f.properties.ward); }, { maxWidth: 280 });
+    layer.bindPopup(function () { return wardPopup(f.properties.ward); }, { maxWidth: 280 });
     layer.on("popupopen", function () { layer.closeTooltip(); });
   } });
   function wardTooltips() {
@@ -774,6 +831,10 @@ body.place-open #answer, body.place-open .banner { display:none; }
     rain: '<path d="M20 16.6A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><path d="M8 19v2M12 17v2M16 19v2M8 14v1M16 14v1M12 21v1"/>',
     heart: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/>'
   };
+  function rainAhead(district) {
+    var w = D.rainWeek, mm = w && w.districts[district];
+    return mm == null || w.to < dhakaDate() ? null : { mm: mm, from: w.from, to: w.to };
+  }
   function rainToday(division) {
     var fresh = D.weather && Date.now() - Date.parse(D.weather.date + "T09:00:00+06:00") < 24 * 3600 * 1000;
     return fresh ? D.weather.divisions[division] : null;
@@ -806,6 +867,32 @@ body.place-open #answer, body.place-open .banner { display:none; }
       paddingBottomRight: phone ? [24, place.offsetHeight + 24] : [24, 24]
     });
   }
+  function aheadView(name, d) {
+    var rest = D.ahead && D.ahead.districts[name], past = D.history && D.history.counts[name];
+    if (!rest || !rest.length || !past || past.slice(-8).indexOf(null) >= 0) return null;
+    var next = new Date(Date.parse(D.history.weeks[D.history.weeks.length - 1] + "T00:00:00Z") + 7 * 864e5).toISOString().slice(0, 10);
+    var future = [[d.next7, d.low, d.high]].concat(rest), weeks = [next].concat(D.ahead.weeks);
+    past = past.slice(-8);
+    var box = el("section", "ahead"); box.appendChild(el("h3", null, t("aheadTitle")(num(future.length))));
+    var end = future[future.length - 1][0], now = past[past.length - 1];
+    box.appendChild(el("p", null, t("aheadTrend")(end > now * 1.15 + 2 ? 1 : end < now * 0.87 - 2 ? -1 : 0, num(future.length))));
+    var ns = "http://www.w3.org/2000/svg", w = 320, h = 110, pad = 8, n = past.length + future.length;
+    var top = Math.max.apply(null, past.concat(future.map(function (f) { return f[2]; }))) || 1;
+    var x = function (i) { return pad + i * (w - 2 * pad) / (n - 1); }, y = function (v) { return h - pad - v * (h - 2 * pad) / top; };
+    var svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "0 0 " + w + " " + h); svg.setAttribute("aria-hidden", "true");
+    function shape(tag, attrs) { var e = document.createElementNS(ns, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; }
+    var at = past.length - 1;
+    shape("polygon", { "class": "band", points: [[x(at), y(now)]].concat(future.map(function (f, i) { return [x(at + 1 + i), y(f[2])]; }))
+      .concat(future.map(function (f, i) { return [x(at + 1 + i), y(f[1])]; }).reverse()).map(function (p) { return p.join(","); }).join(" ") });
+    shape("polyline", { "class": "past", points: past.map(function (v, i) { return x(i) + "," + y(v); }).join(" ") });
+    shape("polyline", { "class": "next", points: [[x(at), y(now)]].concat(future.map(function (f, i) { return [x(at + 1 + i), y(f[0])]; })).map(function (p) { return p.join(","); }).join(" ") });
+    shape("line", { "class": "now", x1: x(at), x2: x(at), y1: pad, y2: h - pad });
+    box.appendChild(svg);
+    var list = el("ul", "small");
+    future.forEach(function (f, i) { list.appendChild(el("li", null, t("aheadWeek")(dayMonth(weeks[i]), about(f[0]), about(f[1]), about(f[2])))); });
+    box.appendChild(list); box.appendChild(el("p", "muted small", t("aheadNote")));
+    return box;
+  }
   function showPlace(p, keepView) {
     current = p;
     var districtName = p.kind === "upazila" ? p.district : p.id;
@@ -820,7 +907,9 @@ body.place-open #answer, body.place-open .banner { display:none; }
     if (d) body.appendChild(el("p", "muted", t("division")(divName(d.division))));
     if (d) {
       warningsFor(d.division).forEach(function (w) { body.appendChild(warningNote(w)); });
-      body.appendChild(el("p", "lead-big", t("expected")(distName(districtName), about(d.next7))));
+      var lead = el("p", "lead-big", t("expected")(distName(districtName), about(d.next7)));
+      if (d.low != null && d.high > d.low) lead.appendChild(el("span", "muted range", " " + t("range")(about(d.low), about(d.high))));
+      body.appendChild(lead);
       var facts = el("ul", "facts");
       facts.appendChild(fact(d.change > 0.05 ? ICON.up : d.change < -0.05 ? ICON.down : ICON.flat, t("trend")(divName(d.division), d.change),
         d.change > 0.05 ? "up" : d.change < -0.05 ? "down" : ""));
@@ -828,9 +917,12 @@ body.place-open #answer, body.place-open .banner { display:none; }
         facts.appendChild(fact(ICON.bed, t("inHospital")(num(d.in_hospital))));
         facts.appendChild(fact(ICON.heart, t("deaths")(num(d.deaths_year))));
       }
-      var rain = rainToday(d.division);
-      if (rain) facts.appendChild(fact(ICON.rain, t("rainLine")(divName(d.division), t("coverage")[rain.coverage], rain.heavy, dayMonth(D.weather.date))));
+      var coming = rainAhead(districtName), rain = rainToday(d.division);
+      if (coming) facts.appendChild(fact(ICON.rain, t("rainWeek")(distName(districtName), coming.mm >= 1 ? num(coming.mm) : null, dayMonth(coming.from), dayMonth(coming.to))));
+      else if (rain) facts.appendChild(fact(ICON.rain, t("rainLine")(divName(d.division), t("coverage")[rain.coverage], rain.heavy, dayMonth(D.weather.date))));
       body.appendChild(facts);
+      var later = aheadView(districtName, d);
+      if (later) body.appendChild(later);
       var actions = el("div", "actions");
       var call = el("a", "btn primary", t("call")); call.href = "tel:16263"; actions.appendChild(call);
       var help = el("a", "btn", D.hospitals ? t("nearestBtn") : t("help")); help.href = "#help"; actions.appendChild(help);
@@ -923,11 +1015,14 @@ body.place-open #answer, body.place-open .banner { display:none; }
   function dhakaDate() { return new Date(Date.now() + 6 * 3600 * 1000).toISOString().slice(0, 10); }
   function homeState() { try { return JSON.parse(localStorage.getItem("dl-home")) || {}; } catch (e) { return {}; } }
   function drawHome() {
-    var s = homeState(), name = remembered(), division = name && D.districts[name].division, rain = division && rainToday(division);
-    var stale = !s.on || Date.now() - Date.parse(s.on) > 7 * 864e5 || (rain && s.on < D.weather.date);
+    var s = homeState(), name = remembered(), division = name && D.districts[name].division, coming = name && rainAhead(name);
+    // About 10 mm is where the Met Department's "light" rain ends; a drizzle forecast shouldn't wipe the ticks.
+    var wet = coming && coming.mm >= 10, rain = !coming && division && rainToday(division);
+    var stale = !s.on || Date.now() - Date.parse(s.on) > 7 * 864e5 || (wet && s.on < coming.from) || (rain && s.on < D.weather.date);
     var done = stale ? [] : s.done || [];
     homeBoxes.forEach(function (b) { b.checked = done.indexOf(b.getAttribute("data-item")) >= 0; });
-    var note = document.getElementById("home-rain"); note.hidden = !rain; note.textContent = rain ? t("homeRain")(divName(division)) : "";
+    var note = document.getElementById("home-rain"); note.hidden = !(wet || rain);
+    note.textContent = wet ? t("homeRainDistrict")(distName(name)) : rain ? t("homeRain")(divName(division)) : "";
     document.getElementById("home-done").textContent = done.length === homeBoxes.length ? t("homeDone") : "";
   }
   homeBoxes.forEach(function (b) {
@@ -1027,8 +1122,24 @@ body.place-open #answer, body.place-open .banner { display:none; }
   var entries = D.upazilaIndex.map(function (u) {
     return { kind: "upazila", id: u.id, en: u.name, bn: u.bn, district: u.district };
   }).concat(Object.keys(D.districts).map(function (n) { return { kind: "district", id: n, en: n, bn: D.bn.district[n] || "", division: D.districts[n].division }; }));
+  if (wards && D.wardRisk) Object.keys(D.wardRisk.wards).forEach(function (w) {
+    (D.wardRisk.wards[w].areas || []).forEach(function (a) { entries.push({ kind: "ward", id: "ward:" + w + ":" + a, en: a, bn: "", ward: Number(w) }); });
+  });
   function label(e) { return lang() === "bn" && e.bn ? e.bn : e.en; }
-  function sub(e) { return e.kind === "upazila" ? t("subUpazila")(distName(e.district)) : t("subDistrict")(divName(e.division)); }
+  function sub(e) { return e.kind === "ward" ? t("subWard")(num(e.ward)) : e.kind === "upazila" ? t("subUpazila")(distName(e.district)) : t("subDistrict")(divName(e.division)); }
+  function showWard(n) {
+    if (!wardsToggle.checked) { wardsToggle.checked = true; wardsToggle.dispatchEvent(new Event("change")); }
+    if (!place.hidden) place.querySelector(".close").click();
+    wards.eachLayer(function (l) {
+      if (l.feature.properties.ward !== n) return;
+      var below = Math.max(document.getElementById("top-stack").getBoundingClientRect().bottom - map.getContainer().getBoundingClientRect().top, 0) + 8;
+      map.fitBounds(l.getBounds(), { animate: !reduce, maxZoom: 14 });
+      l.getPopup().options.autoPanPaddingTopLeft = L.point(16, below);
+      l.openPopup(l.getBounds().getCenter());
+      var content = l.getPopup().getElement().querySelector(".leaflet-popup-content");
+      content.tabIndex = -1; content.focus({ preventScroll: true });
+    });
+  }
   var matches = [], active = -1;
   function close() { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; }
   function setActive(i) {
@@ -1040,7 +1151,7 @@ body.place-open #answer, body.place-open .banner { display:none; }
     var m = matches[i]; if (!m) return;
     input.value = label(m); close();
     if (location.hash !== "#map" && location.hash !== "") location.hash = "#map";
-    setTimeout(function () { showPlace(m); }, 0);
+    setTimeout(function () { if (m.kind === "ward") showWard(m.ward); else showPlace(m); }, 0);
   }
   input.addEventListener("input", function () {
     var q = input.value.trim().toLowerCase();

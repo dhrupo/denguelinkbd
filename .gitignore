@@ -20,3 +20,8 @@ tests/fixtures/dncc_plan_zone4.pdf
 .idea/
 .vscode/
 .vercel/
+
+# Browser tests
+node_modules/
+test-results/
+playwright-report/

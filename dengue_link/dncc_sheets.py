@@ -2,7 +2,7 @@ import csv
 import io
 import re
 import sys
-from datetime import date
+from datetime import date, timedelta
 
 import requests
 
@@ -45,13 +45,32 @@ def parse_test_centres(text, ward_centres):
     return centres
 
 
+def _areas(text):
+    # Commas inside brackets ("Shahzadpur (A, B and C)") don't split; the bracketed detail is dropped from the name.
+    names = (re.sub(r"^and\s+|\s*\(.*$|\.$", "", part.strip()).strip() for part in re.split(r",(?![^(]*\))", text))
+    return list(dict.fromkeys(n for n in names if n))
+
+
 def parse_ward_risk(text, today):
     rows = list(csv.DictReader(io.StringIO(text)))
     newest = max(date.fromisoformat(r["Date"]) for r in rows)
     # DNCC updates the ratings weekly; after three weeks of silence they no longer describe the present.
     if (today - newest).days > 21:
         return None
-    wards = {r["ward"]: {"level": r["composite_risk_category"], "patients": int(float(r["roll_total_patients"] or 0))}
+    daily = {}
+    for r in rows:
+        if r["ward"].isdigit():
+            daily.setdefault(r["ward"], {})[date.fromisoformat(r["Date"])] = int(float(r["Total_patient"] or 0))
+
+    def total(ward, first, last):
+        days = [n for d, n in daily.get(ward, {}).items() if newest - timedelta(days=first) <= d <= newest - timedelta(days=last)]
+        return sum(days) if len(days) == 7 else None
+
+    wards = {r["ward"]: {"level": r["composite_risk_category"], "patients": int(float(r["roll_total_patients"] or 0)),
+                         "week": total(r["ward"], 6, 0), "prev_week": total(r["ward"], 13, 7),
+                         "population": int(float(r["population"])) if r["population"] else None,
+                         "reason": {"patients": r["category_patients"], "crowding": r["category_pop_den"]},
+                         "areas": _areas(r["area"])}
              for r in rows if r["Date"] == newest.isoformat() and r["ward"].isdigit() and r["composite_risk_category"] in ("Low", "Moderate", "High")}
     return {"date": newest.isoformat(), "wards": wards}
 
@@ -89,7 +108,9 @@ def fetch(cache, today, ward_centres):
         # Only the ward, area and day columns are asked for; the sheet's supervisor names and phone numbers never leave Google.
         "spray": lambda: weekly(cache / "dncc_spray.json", today,
                                 lambda: parse_spray(_sheet(CENTRES_BOOK, "mosquito_control_detailed", "select C, E, F, G, H, I, J"))),
-        "wards": lambda: parse_ward_risk(_sheet(RISK_BOOK, "zone_ward_patient_death_larv_mosq_risk", "select * order by A desc limit 60"), today),
+        # Two weeks of daily patients per ward, by named columns; each ward's death counts never leave Google.
+        "wards": lambda: parse_ward_risk(_sheet(RISK_BOOK, "zone_ward_patient_death_larv_mosq_risk",
+                                                "select A, H, J, K, M, T, AH, AN, AP order by A desc limit 1000"), today),
     }
     out, errors = {}, []
     for name, read in sheets.items():

@@ -64,7 +64,7 @@ def test_sources_are_fetched_in_parallel_with_rising_progress(tmp_path, monkeypa
     import time
     from pathlib import Path
 
-    from dengue_link import bmd, dghs_dashboard, dghs_scrape, dncc_lab, dncc_plans, dncc_sheets, hospitals, ju_dncc, pipeline, weather
+    from dengue_link import bamis, bmd, dghs_dashboard, dghs_scrape, dncc_lab, dncc_plans, dncc_sheets, hospitals, ju_dncc, pipeline, weather
 
     repo = Path(__file__).parent.parent
     (tmp_path / "data").mkdir()
@@ -74,7 +74,7 @@ def test_sources_are_fetched_in_parallel_with_rising_progress(tmp_path, monkeypa
         time.sleep(0.3)
         return []
 
-    for mod in (dghs_dashboard, dncc_lab, dncc_plans, weather, ju_dncc, hospitals, dncc_sheets, bmd):
+    for mod in (dghs_dashboard, dncc_lab, dncc_plans, weather, ju_dncc, hospitals, dncc_sheets, bmd, bamis):
         monkeypatch.setattr(mod, "fetch", slow)
     monkeypatch.setattr(dghs_scrape, "scrape", slow)
 
@@ -87,7 +87,7 @@ def test_sources_are_fetched_in_parallel_with_rising_progress(tmp_path, monkeypa
     assert seen == sorted(seen) and seen[-1] == 100
     fetched = [t for _, msg, t in calls if msg.startswith("Fetched")]
     started = next(t for _, msg, t in calls if msg.startswith("Fetching"))
-    assert len(fetched) == 9
+    assert len(fetched) == 10
     assert fetched[-1] - started < 1.0
 
 
@@ -186,8 +186,9 @@ def _sandbox(tmp_path):
 
 
 def _no_lists(monkeypatch):
-    from dengue_link import bmd, dncc_sheets, hospitals
+    from dengue_link import bamis, bmd, dncc_sheets, hospitals
 
+    monkeypatch.setattr(bamis, "fetch", lambda *a, **k: {"from": "2026-05-25", "to": "2026-06-02", "districts": {"Dhaka": 12.0}})
     monkeypatch.setattr(hospitals, "fetch", lambda *a, **k: {"checked": "2026-09-19", "items": []})
     monkeypatch.setattr(dncc_sheets, "fetch", lambda *a, **k: {"centres": {"checked": "2026-09-19", "items": []}, "spray": None, "wards": None})
     monkeypatch.setattr(bmd, "fetch", lambda *a, **k: {"forecast": None, "warnings": []})
@@ -291,6 +292,33 @@ def test_who_is_getting_sick_and_the_dhaka_city_counts_reach_the_page(tmp_path, 
     assert 'id="who"' in page and "16 to 30" in page
     data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', page, re.S).group(1))
     assert data["city"] == {"DNCC": {"day": 61, "year": 6826}, "DSCC": {"day": 0, "year": 7142}}
+
+
+def test_each_district_gets_a_likely_range_around_its_forecast(tmp_path, monkeypatch):
+    import json
+    import re
+
+    import numpy as np
+
+    from dengue_link import db, pipeline
+
+    _sandbox(tmp_path)
+    rng = np.random.default_rng(3)
+    divisions = ("Barisal", "Chittagong", "Dhaka", "Khulna", "Mymensingh", "Rajshahi", "Rangpur", "Sylhet")
+
+    def noisy(conn):
+        for i in range(20):
+            db.put(conn, "dghs_dashboard", "dengue_admit_week", date(2026, 1, 1) + pd.Timedelta(days=7 * i),
+                   {d: float(rng.poisson(40 + 9 * i + 3 * j)) for j, d in enumerate(divisions)})
+        return list(range(20))
+
+    _quiet_sources(monkeypatch, noisy)
+    out, _, accuracy = pipeline.run(tmp_path, today=date(2026, 5, 25))
+    data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', out.read_text(), re.S).group(1))
+    for d in data["districts"].values():
+        assert 0 <= d["low"] <= d["next7"] <= d["high"]
+    assert any(d["low"] < d["next7"] < d["high"] for d in data["districts"].values())
+    assert accuracy["band_checked"] > 0
 
 
 def test_the_page_still_builds_when_the_dashboard_gives_no_age_figures(tmp_path, monkeypatch):
@@ -441,3 +469,146 @@ def test_an_unattended_daily_build_can_wait_longer_for_slow_sources(monkeypatch)
     assert importlib.reload(pipeline).SOURCE_BUDGET_SECONDS == 180
     monkeypatch.delenv("DENGUE_LINK_SOURCE_BUDGET")
     assert importlib.reload(pipeline).SOURCE_BUDGET_SECONDS == 30
+
+
+def test_season_curves_put_each_year_on_the_same_weeks():
+    from dengue_link.dghs_dashboard import week_start
+    from dengue_link.pipeline import season_curves
+
+    weekly = {week_start(2024, w): 70.0 for w in range(1, 53)}
+    weekly |= {week_start(2025, w): 140.0 for w in range(1, 53)}
+    weekly |= {week_start(2026, 1): 100.0, week_start(2026, 2): 250.0}
+    curves = season_curves(pd.Series(weekly))
+    assert list(curves) == ["2024", "2025", "2026"]
+    assert all(len(v) == 52 for v in curves.values())
+    # Week 1 of 2025 starts on 29 December 2024 but belongs to 2025.
+    assert curves["2024"] == [70.0] * 52 and curves["2025"] == [140.0] * 52
+    assert curves["2026"][:2] == [100.0, 250.0] and curves["2026"][2] is None
+
+
+def test_past_seasons_and_this_year_reach_the_hotspots_page(tmp_path, monkeypatch):
+    from dengue_link import db, pipeline
+
+    _sandbox(tmp_path)
+
+    from dengue_link.dghs_dashboard import week_start
+
+    def past(conn):
+        for y in (2024, 2025):
+            for w in range(1, 53):
+                db.put(conn, "dghs_dashboard", "dengue_admit_week_national", week_start(y, w), {"Bangladesh": 100.0 + 50 * w})
+
+    _quiet_sources(monkeypatch, _dashboard_with(past))
+    out, model, _ = pipeline.run(tmp_path, today=date(2026, 5, 25))
+    page = out.read_text()
+    assert 'id="season"' in page and "In the last 2 years, dengue peaked" in page
+
+
+def test_district_rain_for_the_coming_days_reaches_the_page_and_its_failure_does_not_stop_it(tmp_path, monkeypatch):
+    import json
+    import re
+
+    from dengue_link import bamis, pipeline
+
+    _sandbox(tmp_path)
+    _quiet_sources(monkeypatch, _dashboard_with(lambda conn: None))
+    out, *_ = pipeline.run(tmp_path, today=date(2026, 5, 25))
+    data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', out.read_text(), re.S).group(1))
+    assert data["rainWeek"] == {"from": "2026-05-25", "to": "2026-06-02", "districts": {"Dhaka": 12.0}}
+
+    def down():
+        raise ConnectionError("bamis.gov.bd unreachable")
+
+    monkeypatch.setattr(bamis, "fetch", down)
+    out, model, _ = pipeline.run(tmp_path, today=date(2026, 5, 25))
+    page = out.read_text()
+    data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', page, re.S).group(1))
+    assert model is not None and data["rainWeek"] is None
+    assert "district rain for the coming days" in page
+
+
+def test_weeks_further_ahead_are_shown_only_while_they_clearly_beat_the_simple_guess(tmp_path, monkeypatch):
+    import json
+    import re
+
+    from dengue_link import pipeline
+
+    _sandbox(tmp_path)
+    _quiet_sources(monkeypatch, _dashboard_with(lambda conn: None))
+    real = pipeline.backtest
+    scores = {2: (60.0, 100.0), 3: (99.0, 100.0), 4: (10.0, 100.0)}
+
+    def scored(*a, horizon=1, **k):
+        if horizon == 1:
+            return real(*a, **k)
+        model, guess = scores[horizon]
+        return {"model_mae": model, "baseline_mae": guess, "n": 50, "band": (-0.5, 0.4), "band_held": 0.8, "band_checked": 30}
+
+    monkeypatch.setattr(pipeline, "backtest", scored)
+    out, *_ = pipeline.run(tmp_path, today=date(2026, 5, 25))
+    data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', out.read_text(), re.S).group(1))
+    # Week 3 is only 1% better, so neither it nor week 4 is shown.
+    assert data["ahead"]["weeks"] == ["2026-05-28"]
+    assert all(len(v) == 1 and v[0][1] <= v[0][0] <= v[0][2] for v in data["ahead"]["districts"].values())
+    assert len(data["history"]["counts"]["Dhaka"]) == 12
+
+
+def test_early_in_the_season_the_page_builds_without_weeks_further_ahead(tmp_path, monkeypatch):
+    import json
+    import re
+
+    import numpy as np
+
+    from dengue_link import db, pipeline
+
+    _sandbox(tmp_path)
+    rng = np.random.default_rng(1)
+    divisions = ("Barisal", "Chittagong", "Dhaka", "Khulna", "Mymensingh", "Rajshahi", "Rangpur", "Sylhet")
+
+    def fourteen_weeks(conn):
+        for i in range(14):
+            db.put(conn, "dghs_dashboard", "dengue_admit_week", date(2026, 1, 4) + pd.Timedelta(days=7 * i),
+                   {d: float(rng.poisson(40 + 5 * i)) for d in divisions})
+        return list(range(14))
+
+    _quiet_sources(monkeypatch, fourteen_weeks)
+    out, model, _ = pipeline.run(tmp_path, today=date(2026, 4, 16))
+    data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', out.read_text(), re.S).group(1))
+    assert model is not None and data["ahead"] is None
+
+
+def test_a_division_missing_an_earlier_week_still_builds_the_page(tmp_path, monkeypatch):
+    import json
+    import re
+
+    import numpy as np
+
+    from dengue_link import db, pipeline
+
+    _sandbox(tmp_path)
+    rng = np.random.default_rng(2)
+    divisions = ("Barisal", "Chittagong", "Dhaka", "Khulna", "Mymensingh", "Rajshahi", "Rangpur", "Sylhet")
+
+    def gap(conn):
+        for i in range(30):
+            db.put(conn, "dghs_dashboard", "dengue_admit_week", date(2026, 1, 4) + pd.Timedelta(days=7 * i),
+                   {d: float(rng.poisson(40 + 8 * i)) for d in divisions if not (d == "Sylhet" and i == 25)})
+        return list(range(30))
+
+    _quiet_sources(monkeypatch, gap)
+    real = pipeline.backtest
+    monkeypatch.setattr(pipeline, "backtest", lambda *a, horizon=1, **k: real(*a, **k) if horizon == 1 else
+                        {"model_mae": 1.0, "baseline_mae": 2.0, "n": 9, "band": (-0.5, 0.5), "band_held": 0.8, "band_checked": 9})
+    out, model, _ = pipeline.run(tmp_path, today=date(2026, 8, 10))
+    data = json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>', out.read_text(), re.S).group(1))
+    assert model is not None and data["ahead"]["weeks"]
+    assert len(data["ahead"]["districts"]["Sylhet"]) == 3
+    assert None in data["history"]["counts"]["Sylhet"] and None not in data["history"]["counts"]["Dhaka"]
+
+
+def test_a_missing_week_leaves_a_gap_instead_of_shifting_the_season():
+    from dengue_link.dghs_dashboard import week_start
+    from dengue_link.pipeline import season_curves
+
+    curves = season_curves(pd.Series({week_start(2026, 1): 100.0, week_start(2026, 3): 300.0}))
+    assert curves["2026"][:3] == [100.0, None, 300.0]

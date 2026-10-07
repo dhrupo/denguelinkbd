@@ -33,6 +33,18 @@ def parse_division_weeks(html):
     return pd.DataFrame(series, index=index).astype(float)
 
 
+def parse_national_weeks(html):
+    _, block = _chart(html, "by_week_case")
+    labels = json.loads(re.search(r"categories:\s*(\[[^\]]*\])", block).group(1))
+    weeks = {}
+    for year, data in re.findall(r"name:\s*['\"][^'\"]*?in (\d{4})['\"][^{}]*?data:\s*(\[[^\]]*\])", block):
+        for label, n in zip(labels, json.loads(data)):
+            # The first, unlabelled slot holds the odd patient counted before week 1.
+            if re.fullmatch(r"W\d+", label):
+                weeks[week_start(int(year), int(label[1:]))] = float(n)
+    return pd.Series(weeks).sort_index()
+
+
 AGE_BANDS = [(15, "0-15"), (30, "16-30"), (45, "31-45"), (60, "46-60"), (999, "61+")]
 
 
@@ -75,6 +87,11 @@ def fetch(conn):
                    for sex in ("male", "female")]
     side_charts += [("dengue_admit_24h_city", lambda: parse_city_corporations(r.text, "div_city_cor_case_last_24_hour")),
                     ("dengue_admit_year_city", lambda: parse_city_corporations(r.text, "div_city_cor_case_in_year"))]
+    try:
+        for day, n in parse_national_weeks(r.text).items():
+            db.put(conn, "dghs_dashboard", "dengue_admit_week_national", day, {"Bangladesh": n})
+    except Exception as e:
+        print(f"FAILED dashboard chart dengue_admit_week_national: {e}", file=sys.stderr)
     for metric, read in side_charts:
         # The forecast needs only the weekly cases above; DGHS renaming one of these extra charts must not cost us those.
         try:

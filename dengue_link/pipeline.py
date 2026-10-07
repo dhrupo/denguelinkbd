@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import shapefile
 
-from dengue_link import bmd, db, dghs_dashboard, dghs_scrape, dncc_lab, dncc_plans, dncc_sheets, hospitals, ju_dncc, weather
+from dengue_link import bamis, bmd, db, dghs_dashboard, dghs_scrape, dncc_lab, dncc_plans, dncc_sheets, hospitals, ju_dncc, weather
 from dengue_link.areas import build_areas, pin_checker
 from dengue_link.flybrain import FlyCircuit, novelty_series
 from dengue_link.forecast import backtest, fit, forecast, split_by_share
@@ -36,6 +36,18 @@ def season_signal(national_daily, week_starts):
     # Averaging each week with its neighbours smooths out noise from only a few past seasons; 3 weeks tested best (82.7 vs 86.4 unsmoothed).
     typical = growth.groupby(level=1).mean().rolling(3, center=True, min_periods=1).mean()
     return pd.Series({w: float(typical.get((w.timetuple().tm_yday - 1) // 7, 0.0)) for w in week_starts})
+
+
+def season_curves(weekly):
+    weekly = pd.Series(weekly.to_numpy(dtype=float), index=pd.to_datetime(pd.Index(weekly.index))).sort_index()
+    # A DGHS week belongs to the year its middle day falls in, so week 1 of 2025 (from 29 December 2024) counts for 2025.
+    curves = {}
+    for start, n in weekly.items():
+        year = (start + pd.Timedelta(days=3)).year
+        week = (start.date() - dghs_dashboard.week_start(year, 1)).days // 7
+        if 0 <= week < 52:
+            curves.setdefault(str(year), [None] * 52)[week] = float(n)
+    return curves
 
 
 def aedes_signal(counts, week_starts, divisions):
@@ -69,6 +81,11 @@ def weekly_division_rain(rain, district_division, week_starts):
     return pd.DataFrame(
         {s: by_division.loc[pd.Timestamp(s) : pd.Timestamp(s) + pd.Timedelta(days=6)].sum() for s in week_starts}
     ).T
+
+
+def _likely(n, band):
+    # The middle 80% of past misses, as a ratio, applied around each forecast.
+    return ((n + 1) * np.exp(min(band[0], 0)) - 1).clip(lower=0), (n + 1) * np.exp(max(band[1], 0)) - 1
 
 
 def complete_weeks(weeks, today):
@@ -115,7 +132,7 @@ def _series(conn, source, metric):
 SOURCE_BUDGET_SECONDS = int(os.environ.get("DENGUE_LINK_SOURCE_BUDGET", 30))
 
 
-HOSPITALS, DNCC_SHEETS, BMD = "DGHS hospital list", "DNCC dengue dashboard", "BMD forecast and warnings"
+HOSPITALS, DNCC_SHEETS, BMD, BAMIS = "DGHS hospital list", "DNCC dengue dashboard", "BMD forecast and warnings", "BMD district rain, coming days"
 
 
 def _sources(areas, today, cache, centres, in_district):
@@ -133,6 +150,7 @@ def _sources(areas, today, cache, centres, in_district):
         (HOSPITALS, None, lambda c: hospitals.fetch(cache, in_district, today), lambda d: f"{len(d['items'])} hospitals"),
         (DNCC_SHEETS, None, lambda c: dncc_sheets.fetch(cache, today, centres), lambda d: ", ".join(k for k, v in d.items() if v)),
         (BMD, None, bmd.fetch, lambda d: f"{len(d['warnings'])} warnings in force"),
+        (BAMIS, None, lambda c: bamis.fetch(), lambda d: f"{len(d['districts'])} districts, {d['from']} to {d['to']}"),
     ]
 
 
@@ -219,6 +237,9 @@ def run(root=Path("."), today=None, progress=lambda pct, msg: None):
         "humidity": weekly_division_mean(_series(conn, "open_meteo", "humidity_pct"), starts),
     }
     extra = {k: v.set_axis(weeks.index) for k, v in extra.items() if v is not None and not v.empty}
+    past_years = _series(conn, "dghs_dashboard", "dengue_admit_week_national")
+    weekly = pd.concat([past_years["Bangladesh"].set_axis(pd.to_datetime(past_years.index)), weeks.sum(axis=1)]) if not past_years.empty else None
+    season = season_curves(weekly[~weekly.index.duplicated(keep="last")]) if weekly is not None else None
     nb = areas.division_neighbours
     try:
         model = fit(weeks, rain, nb, period=1, extra=extra)
@@ -232,6 +253,22 @@ def run(root=Path("."), today=None, progress=lambda pct, msg: None):
     daily = _series(conn, "dghs", "dengue_admit_24h")
     recent = daily[daily.index > today - timedelta(days=15)].sum().to_dict() if not daily.empty else {}
     districts = split_by_share(divisions, recent, areas.district_division)
+    districts["low"], districts["high"] = _likely(districts["next7"], accuracy["band"])
+    ahead = {"weeks": [], "districts": {d: [] for d in districts.index}}
+    for h in (2, 3, 4):
+        # A week further ahead is shown only while it clearly beats "same as this week", and never after a week that didn't.
+        try:
+            score = backtest(weeks, rain, nb, start=weeks.index[min(12, len(weeks) - 2)], period=1, extra=extra, horizon=h)
+        except ValueError:
+            break
+        if score["model_mae"] > 0.97 * score["baseline_mae"]:
+            break
+        later = split_by_share(forecast(fit(weeks, rain, nb, period=1, extra=extra, horizon=h), weeks, rain, nb, period=1, extra=extra),
+                               recent, areas.district_division)["next7"]
+        ahead["weeks"].append((weeks.index[-1] + timedelta(weeks=h)).date().isoformat())
+        low, high = _likely(later, score["band"])
+        for d in later.index:
+            ahead["districts"][d].append([float(later[d]), float(low[d]), float(high[d])])
     districts["population"] = pd.read_csv(raw / "population_2022.csv", index_col="district")["population_2022"].reindex(districts.index)
     in_hospital, deaths = _series(conn, "dghs", "dengue_in_hospital"), _series(conn, "dghs", "dengue_deaths_year")
     districts["in_hospital"] = in_hospital.iloc[-1].reindex(districts.index) if not in_hospital.empty else np.nan
@@ -272,7 +309,10 @@ def run(root=Path("."), today=None, progress=lambda pct, msg: None):
         ward_risk=sheets.get("wards"),
         weather=official.get("forecast"),
         warnings=official.get("warnings") or [],
+        rain_week=results.get(BAMIS),
         past_weeks=weeks.tail(12),
+        season=season,
+        ahead=ahead if ahead["weeks"] else None,
         country=json.loads((raw / "country.geojson").read_text()),
         district_shapes=json.loads((raw / "districts.geojson").read_text()),
         bn=json.loads((raw / "bangla_names.json").read_text(encoding="utf-8")),
